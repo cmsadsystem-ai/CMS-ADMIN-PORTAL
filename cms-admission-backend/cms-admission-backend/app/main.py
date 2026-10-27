@@ -53,9 +53,18 @@ def health():
 
 
 # ---- Serve Unified Frontend (Option B) ----
-FRONTEND_DIST = Path(__file__).resolve().parents[3] / "cms-admission-Frontend" / "dist"
+FRONTEND_DIST = None
+for candidate in [
+    Path(__file__).resolve().parents[3] / "cms-admission-Frontend" / "dist",
+    Path(__file__).resolve().parents[2] / "cms-admission-Frontend" / "dist",
+    Path.cwd() / "cms-admission-Frontend" / "dist",
+    Path.cwd() / "dist",
+]:
+    if candidate.exists() and (candidate / "index.html").exists():
+        FRONTEND_DIST = candidate
+        break
 
-if FRONTEND_DIST.exists():
+if FRONTEND_DIST:
     assets_dir = FRONTEND_DIST / "assets"
     if assets_dir.exists():
         app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")

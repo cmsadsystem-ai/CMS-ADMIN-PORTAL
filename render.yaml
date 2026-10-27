@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: cms-admin-portal
+    env: python
+    region: singapore
+    plan: free
+    buildCommand: bash build.sh
+    startCommand: cd cms-admission-backend/cms-admission-backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: NODE_VERSION
+        value: 20
+      - key: JWT_SECRET
+        generateValue: true
+      - key: AADHAAR_ENC_KEY
+        value: OjnfTM7WmkOa__YcKhVHLr7IAP-w71TsBwAE-e6Oaqk=
+      - key: CORS_ORIGINS
+        value: "*"
