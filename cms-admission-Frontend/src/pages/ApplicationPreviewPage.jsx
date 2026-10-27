@@ -63,12 +63,12 @@ export default function ApplicationPreviewPage() {
     return Object.keys(errs).length === 0;
   };
 
-  const handleEnquiring = () => {
+  const handleEnquiring = async () => {
     if (!validateStaffView()) {
       window.alert('Staff name and Staff category are mandatory before submitting.');
       return;
     }
-    const application = submitApplication({
+    const application = await submitApplication({
       ...draft,
       staffViewName: staffViewName.trim(),
       staffViewCategory: staffViewCategory.trim(),

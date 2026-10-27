@@ -226,3 +226,13 @@ class PortalSetting(Base):
 
     key: Mapped[str] = mapped_column(String(50), primary_key=True)
     value_json: Mapped[str] = mapped_column(Text)
+
+
+class ApplicationSequence(Base):
+    """Tracks atomic sequential application numbers per year (Format: YYNNNN)."""
+
+    __tablename__ = "application_sequences"
+
+    year: Mapped[int] = mapped_column(Integer, primary_key=True)  # e.g., 2026
+    last_number: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+

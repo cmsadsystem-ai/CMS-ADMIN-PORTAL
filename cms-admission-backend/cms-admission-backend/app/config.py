@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_FROM: str = "admissions@cms.edu.in"
     SMTP_TLS: bool = True
+    FRONTEND_BASE_URL: str = "http://localhost:5173"
+
 
     @property
     def cors_list(self) -> list[str]:

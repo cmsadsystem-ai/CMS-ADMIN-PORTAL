@@ -12,8 +12,8 @@ export default function AdmissionPaymentPage() {
   const { draft, saveDraft, paymentSettings, submitApplication } = useAppContext();
   const paymentQr = paymentSettings.paymentQrs?.[0] || paymentSettings.paymentQr || null;
 
-  const handleConfirm = () => {
-    const application = submitApplication({
+  const handleConfirm = async () => {
+    const application = await submitApplication({
       ...draft,
       admissionFeeAmount: 5000,
       paymentStatus: 'Unpaid',

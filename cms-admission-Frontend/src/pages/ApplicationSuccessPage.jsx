@@ -15,7 +15,7 @@ export default function ApplicationSuccessPage() {
         <div className="success-icon"><CheckCircle2 size={54} /></div>
         <p className="eyebrow accent">Application Submitted</p>
         <h2>Thank you, {studentName}.</h2>
-        <p className="success-detail">Your admission application has been received and saved locally in this frontend demo.</p>
+        <p className="success-detail">Your admission application has been received successfully.</p>
 
         <div className="success-meta">
           <div className="meta-block">
@@ -29,10 +29,6 @@ export default function ApplicationSuccessPage() {
               {lastSubmitted?.paymentStatus === 'Unpaid' ? ' — Admission fee unpaid' : ''}
             </strong>
           </div>
-        </div>
-
-        <div className="warning-box">
-          Warning: this demo stores admission data locally in the browser. The backend and database integration must be implemented separately.
         </div>
 
         <div className="cta-row success-actions">

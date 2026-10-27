@@ -144,101 +144,70 @@ export function AppProvider({ children }) {
   };
 
   const updateApplication = (applicationId, updates, comment, actor) => {
-    let targetApp = null;
-    let oldStatus = null;
     setApplications((current) => {
       const next = current.map((item) => {
         if (item.id !== applicationId) return item;
-        oldStatus = item.status;
-        targetApp = {
+        return {
           ...item,
           ...updates,
           updatedAt: new Date().toISOString(),
         };
-        return targetApp;
       });
       if (comment) {
         addHistoryEntry(applicationId, comment, actor);
       }
       return next;
     });
+    // Backend commits update to DB first, then automatically dispatches status email without duplicates
     updateApplicationApi(applicationId, updates, comment, actor);
-
-    if (updates.status && updates.status !== oldStatus && targetApp?.email) {
-      sendApplicationStatusEmail({
-        to: targetApp.email,
-        studentName: targetApp.studentName,
-        applicationId,
-        status: updates.status,
-        course: targetApp.coursePreference?.firstPreference,
-        applicationDetails: targetApp,
-      }).catch(() => {});
-    }
   };
 
-  const submitApplication = (formData) => {
-    const generatedId = formData.id || `CMS-${Date.now()}`;
-    const appData = {
+  const submitApplication = async (formData) => {
+    const rawData = {
       ...formData,
-      id: generatedId,
-      status: 'Enquiring',
-      submittedAt: new Date().toISOString(),
+      status: formData.status || 'Enquiring',
+      submittedAt: formData.submittedAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       confirmationDate: null,
       correctionNotes: formData.correctionNotes || '',
       coursePreference: formData.coursePreference || { firstPreference: '', additionalPreferences: [] },
     };
 
+    // Backend generates unique atomic YYNNNN ID, saves to MySQL, and emails the student
+    const serverResult = await submitApplicationApi(rawData);
+    const officialId = serverResult?.id || rawData.id || `CMS-${Date.now()}`;
+    const appRecord = {
+      ...rawData,
+      ...(serverResult || {}),
+      id: officialId,
+    };
+
     setApplications((current) => {
-      const filtered = current.filter((item) => item.id !== generatedId);
-      return [appData, ...filtered];
+      const filtered = current.filter((item) => item.id !== officialId);
+      return [appRecord, ...filtered];
     });
 
-    const appRecord = { ...appData, id: generatedId };
     setLastSubmitted(appRecord);
     setDraft(getInitialDraft());
     writeStorage(STORAGE_KEYS.cmsDraftApplication, getInitialDraft());
-    submitApplicationApi(appRecord);
-
-    if (appRecord.email) {
-      sendApplicationStatusEmail({
-        to: appRecord.email,
-        studentName: appRecord.studentName,
-        applicationId: generatedId,
-        status: 'Enquiring',
-        course: appRecord.coursePreference?.firstPreference,
-        applicationDetails: appRecord,
-      }).catch(() => {});
-    }
 
     return appRecord;
   };
 
   const confirmApplication = (applicationId, actor = 'Admission Officer') => {
     const note = 'Application confirmed by admission office.';
-    let confirmedApp = null;
     setApplications((current) => current.map((item) => {
       if (item.id !== applicationId) return item;
-      confirmedApp = {
+      return {
         ...item,
         status: 'Confirmed',
         confirmedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      return confirmedApp;
     }));
     addHistoryEntry(applicationId, note, actor);
+    // Backend commits update to DB first, then automatically dispatches Confirmed email without duplicates
     updateApplicationApi(applicationId, { status: 'Confirmed' }, note, actor);
-    if (confirmedApp?.email) {
-      sendApplicationStatusEmail({
-        to: confirmedApp.email,
-        studentName: confirmedApp.studentName,
-        applicationId,
-        status: 'Confirmed',
-        course: confirmedApp.coursePreference?.firstPreference,
-        applicationDetails: confirmedApp,
-      }).catch(() => {});
-    }
   };
 
   const deleteApplication = async (applicationId) => {
