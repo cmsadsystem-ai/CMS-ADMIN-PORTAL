@@ -37,6 +37,7 @@ export default function ApplicationPreviewPage() {
     physics: draft.physicsMarks,
     chemistry: draft.chemistryMarks,
   });
+  const [staffErrors, setStaffErrors] = useState({});
 
   if (!draft || !draft.studentName) {
     return (
@@ -50,19 +51,48 @@ export default function ApplicationPreviewPage() {
     );
   }
 
+  const validateStaffView = () => {
+    const errs = {};
+    if (!String(staffViewName || '').trim()) {
+      errs.name = 'Staff name is mandatory.';
+    }
+    if (!String(staffViewCategory || '').trim()) {
+      errs.category = 'Staff category is mandatory.';
+    }
+    setStaffErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const handleEnquiring = () => {
+    if (!validateStaffView()) {
+      window.alert('Staff name and Staff category are mandatory before submitting.');
+      return;
+    }
     const application = submitApplication({
       ...draft,
-      staffViewName,
-      staffViewCategory,
+      staffViewName: staffViewName.trim(),
+      staffViewCategory: staffViewCategory.trim(),
       cutOffMarks: cutoff ?? '',
     });
     navigate(`/application-success?id=${encodeURIComponent(application.id)}`);
   };
 
   const handleSaveDraft = () => {
-    saveDraft({ ...draft, staffViewName, staffViewCategory, cutOffMarks: cutoff ?? '' });
+    if (!validateStaffView()) {
+      window.alert('Staff name and Staff category are mandatory before saving.');
+      return;
+    }
+    saveDraft({ ...draft, staffViewName: staffViewName.trim(), staffViewCategory: staffViewCategory.trim(), cutOffMarks: cutoff ?? '' });
     window.alert('Application draft saved in this browser.');
+  };
+
+  const handleConfirmSeat = () => {
+    if (!validateStaffView()) {
+      window.alert('Staff name and Staff category are mandatory before confirming seat.');
+      return;
+    }
+    saveDraft({ ...draft, staffViewName: staffViewName.trim(), staffViewCategory: staffViewCategory.trim(), cutOffMarks: cutoff ?? '' });
+    navigate('/payment');
   };
 
   return (
@@ -226,26 +256,40 @@ export default function ApplicationPreviewPage() {
         <section className="staff-view-section screen-only">
           <h3>Staff view</h3>
           <div className="staff-view-fields">
-            <label className="field-group" htmlFor="staff-view-name">
-              Staff name
+            <div className="field-group">
+              <label htmlFor="staff-view-name">
+                Staff name <span className="required-indicator" style={{ color: '#006747' }}>*</span>
+              </label>
               <input
                 id="staff-view-name"
                 type="text"
+                required
                 value={staffViewName}
-                onChange={(event) => setStaffViewName(event.target.value)}
+                onChange={(event) => {
+                  setStaffViewName(event.target.value);
+                  if (staffErrors.name) setStaffErrors((prev) => ({ ...prev, name: '' }));
+                }}
                 placeholder="Type staff name"
               />
-            </label>
-            <label className="field-group" htmlFor="staff-view-category">
-              Staff category
+              {staffErrors.name ? <small className="error-text" style={{ color: '#7d4b11', fontWeight: 600 }}>{staffErrors.name}</small> : null}
+            </div>
+            <div className="field-group">
+              <label htmlFor="staff-view-category">
+                Staff category <span className="required-indicator" style={{ color: '#006747' }}>*</span>
+              </label>
               <input
                 id="staff-view-category"
                 type="text"
+                required
                 value={staffViewCategory}
-                onChange={(event) => setStaffViewCategory(event.target.value)}
+                onChange={(event) => {
+                  setStaffViewCategory(event.target.value);
+                  if (staffErrors.category) setStaffErrors((prev) => ({ ...prev, category: '' }));
+                }}
                 placeholder="Type staff category"
               />
-            </label>
+              {staffErrors.category ? <small className="error-text" style={{ color: '#7d4b11', fontWeight: 600 }}>{staffErrors.category}</small> : null}
+            </div>
           </div>
         </section>
         <p className="upload-storage-note screen-only" style={{ marginTop: '8px' }}>Uploaded files and this application are stored in this browser demo only; they are not sent to a server.</p>
@@ -260,7 +304,7 @@ export default function ApplicationPreviewPage() {
           <button type="button" className="secondary-btn" onClick={() => window.print()}>
             <Printer size={16} /> Print
           </button>
-          <button type="button" className="secondary-btn" onClick={() => navigate('/payment')}>
+          <button type="button" className="secondary-btn" onClick={handleConfirmSeat}>
             <CreditCard size={16} /> Confirm Seat
           </button>
           <button type="button" className="primary-btn" onClick={handleEnquiring}>

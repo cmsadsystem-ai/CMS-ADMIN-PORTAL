@@ -172,6 +172,97 @@ def update_portal_application(
     return data
 
 
+@router.delete("/applications/{app_id}")
+def delete_portal_application(
+    app_id: str,
+    db: Session = Depends(get_db),
+):
+    record = db.get(models.PortalApplication, app_id)
+    if not record:
+        raise HTTPException(404, "Application not found")
+    db.delete(record)
+    db.commit()
+    return {"ok": True, "id": app_id}
+
+
+class EmailSendRequest(BaseModel):
+    to: str
+    studentName: str
+    applicationId: str
+    status: str
+    course: str | None = None
+    enquiringEmail: str | None = None
+    applicationDetails: dict[str, Any] | None = None
+
+
+@router.post("/email/send")
+def send_portal_email(payload: EmailSendRequest):
+    import smtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+
+    from ..config import settings
+
+    if not settings.SMTP_HOST:
+        raise HTTPException(503, "SMTP email service is not configured on the server")
+
+    subject = f"CMS College of Engineering - Admission Application {payload.status}: {payload.applicationId}"
+    student_name = payload.studentName or "Student"
+    status_text = payload.status
+
+    details = payload.applicationDetails or {}
+    details_html = "<h3>Application Details</h3><ul>"
+    for k, v in details.items():
+        if v and not isinstance(v, (dict, list)):
+            details_html += f"<li><strong>{k}:</strong> {v}</li>"
+    details_html += "</ul>"
+
+    body_html = f"""
+    <html>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <h2 style="color: #006747;">CMS College of Engineering - Admissions</h2>
+        <p>Dear {student_name},</p>
+        <p>Your admission application (Reference: <strong>{payload.applicationId}</strong>) status is: <strong style="color: #006747;">{status_text}</strong>.</p>
+        <p><strong>Course:</strong> {payload.course or 'Selected Programme'}</p>
+        {details_html if details else ''}
+        <hr/>
+        <p style="font-size: 0.9em; color: #666;">CMS College of Engineering Admissions Office<br/>For inquiries: {payload.enquiringEmail or settings.SMTP_FROM}</p>
+      </body>
+    </html>
+    """
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = settings.SMTP_FROM
+    msg["To"] = payload.to
+    if payload.status == "Enquiring" and payload.enquiringEmail:
+        msg["Cc"] = payload.enquiringEmail
+
+    msg.attach(MIMEText(body_html, "html"))
+
+    try:
+        if settings.SMTP_TLS:
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
+                server.starttls()
+                if settings.SMTP_USER and settings.SMTP_PASSWORD:
+                    server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                recipients = [payload.to]
+                if payload.status == "Enquiring" and payload.enquiringEmail:
+                    recipients.append(payload.enquiringEmail)
+                server.sendmail(settings.SMTP_FROM, recipients, msg.as_string())
+        else:
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
+                if settings.SMTP_USER and settings.SMTP_PASSWORD:
+                    server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                recipients = [payload.to]
+                if payload.status == "Enquiring" and payload.enquiringEmail:
+                    recipients.append(payload.enquiringEmail)
+                server.sendmail(settings.SMTP_FROM, recipients, msg.as_string())
+        return {"ok": True, "message": f"Email delivered to {payload.to}"}
+    except Exception as e:
+        raise HTTPException(502, f"Failed to send email via SMTP: {str(e)}")
+
+
 @router.get("/settings/{key}")
 def get_portal_setting(key: str, db: Session = Depends(get_db)):
     setting = db.get(models.PortalSetting, key)

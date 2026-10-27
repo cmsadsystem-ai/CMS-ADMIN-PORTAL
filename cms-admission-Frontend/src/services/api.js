@@ -83,6 +83,13 @@ export async function saveSettingApi(key, value) {
   });
 }
 
+export async function deleteApplicationApi(applicationId) {
+  const result = await safeFetch(`/portal/applications/${encodeURIComponent(applicationId)}`, {
+    method: 'DELETE',
+  });
+  return result.ok;
+}
+
 export const DEFAULT_ENQUIRING_EMAIL = 'admissions@cms.edu.in';
 
 export async function sendApplicationStatusEmail({
@@ -92,6 +99,7 @@ export async function sendApplicationStatusEmail({
   status,
   course,
   enquiringEmail = DEFAULT_ENQUIRING_EMAIL,
+  applicationDetails = {},
 }) {
   if (!to) return { ok: false, error: 'Student email is required.' };
 
@@ -102,6 +110,7 @@ export async function sendApplicationStatusEmail({
     status, // 'Enquiring' or 'Confirmed'
     course,
     enquiringEmail,
+    applicationDetails,
     sentAt: new Date().toISOString(),
   };
 

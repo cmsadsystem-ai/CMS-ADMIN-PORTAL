@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CheckCheck, Save } from 'lucide-react';
+import { CheckCheck, Save, Trash2 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import ApplicationDocuments from '../components/ApplicationDocuments';
@@ -25,6 +25,7 @@ export default function OfficerApplicationDetailPage() {
     updateApplication,
     confirmApplication,
     forwardApplicationToVC,
+    deleteApplication,
     correctionHistory,
   } = useAppContext();
   const application = useMemo(() => applications.find((item) => item.id === id), [applications, id]);
@@ -112,7 +113,21 @@ export default function OfficerApplicationDetailPage() {
             <p className="eyebrow accent">Application review</p>
             <h2>{application.id}</h2>
           </div>
-          <div className="toolbar">
+          <div className="toolbar" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              type="button"
+              className="secondary-btn compact"
+              onClick={() => {
+                const confirmed = window.confirm(`Are you sure you want to delete application "${application.id}" (${application.studentName || 'Student'})? This action cannot be undone.`);
+                if (confirmed) {
+                  deleteApplication(application.id);
+                  navigate('/officer/dashboard', { replace: true });
+                }
+              }}
+              style={{ color: '#4b5563', borderColor: '#d1d5db' }}
+            >
+              <Trash2 size={16} /> Delete Application
+            </button>
             {application.status !== 'Sent to VC' ? (
               <button type="button" className="primary-btn compact" onClick={handleWorkflowAction}>
                 <CheckCheck size={16} /> {actionLabel}

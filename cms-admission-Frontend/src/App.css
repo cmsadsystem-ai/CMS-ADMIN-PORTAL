@@ -1566,3 +1566,33 @@ input[type="number"] {
   transform: translateY(-1px);
 }
 
+/* 2. Remove red color: Remove red styling from payment and post-payment pages */
+.payment-shell,
+.success-shell,
+.payment-panel,
+.success-card {
+  color: var(--text, #1b382b);
+}
+
+.payment-shell .error-text,
+.success-shell .error-text,
+.payment-panel .error-text,
+.success-card .error-text {
+  color: #7d4b11 !important; /* amber/brown rather than red */
+}
+
+.payment-shell .required-indicator,
+.success-shell .required-indicator {
+  color: var(--primary, #006747) !important;
+}
+
+.success-shell .warning-box {
+  background: #f0f7f3 !important;
+  color: #1b4d38 !important;
+  border: 1px solid rgba(0, 103, 71, 0.25) !important;
+}
+
+.payment-shell .payment-status strong {
+  color: #1b4d38 !important;
+}
+

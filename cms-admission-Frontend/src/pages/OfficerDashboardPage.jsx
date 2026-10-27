@@ -1,4 +1,4 @@
-import { ArrowRight, BellRing, Download, LogOut, Search, Settings } from 'lucide-react';
+import { ArrowRight, BellRing, Download, LogOut, Search, Settings, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
@@ -6,11 +6,18 @@ import { downloadApplicationsCsv, formatDate } from '../utils/helpers';
 
 export default function OfficerDashboardPage() {
   const navigate = useNavigate();
-  const { applications, auth, logoutDemoUser } = useAppContext();
+  const { applications, auth, logoutDemoUser, deleteApplication } = useAppContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [courseFilter, setCourseFilter] = useState('');
   const normalizedSearch = searchTerm.trim().toLocaleLowerCase();
+
+  const handleDeleteApplication = (id, studentName) => {
+    const confirmed = window.confirm(`Are you sure you want to delete application "${id}" (${studentName || 'Student'})? This action cannot be undone.`);
+    if (confirmed) {
+      deleteApplication(id);
+    }
+  };
   const filteredApplications = applications.filter((app) => {
     const searchableFields = [
       app.id,
@@ -114,7 +121,20 @@ export default function OfficerDashboardPage() {
                     <td>{app.coursePreference?.firstPreference || '—'}</td>
                     <td>{formatDate(app.submittedAt)}</td>
                     <td><span className="badge badge-warning">{app.status}</span></td>
-                    <td><Link to={`/officer/application/${app.id}`} className="btn-review">View/Edit</Link></td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Link to={`/officer/application/${app.id}`} className="btn-review">View/Edit</Link>
+                        <button
+                          type="button"
+                          className="secondary-btn compact"
+                          onClick={() => handleDeleteApplication(app.id, app.studentName)}
+                          title="Delete application"
+                          style={{ padding: '4px 8px', borderColor: '#d1d5db' }}
+                        >
+                          <Trash2 size={13} color="#6b7280" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 )) : <tr><td colSpan="7">No applications are waiting for review.</td></tr>}
               </tbody>
@@ -132,7 +152,27 @@ export default function OfficerDashboardPage() {
               </thead>
               <tbody>
                 {confirmed.length ? confirmed.slice(0, 8).map((app) => (
-                  <tr key={app.id}><td>{app.id}</td><td>{app.studentName}</td><td>{app.coursePreference?.firstPreference || '—'}</td><td>{formatDate(app.confirmedAt || app.submittedAt)}</td><td><span className="badge badge-success">Confirmed</span></td><td><Link to={`/officer/application/${app.id}`} className="btn-review">Review / Send to VC</Link></td></tr>
+                  <tr key={app.id}>
+                    <td>{app.id}</td>
+                    <td>{app.studentName}</td>
+                    <td>{app.coursePreference?.firstPreference || '—'}</td>
+                    <td>{formatDate(app.confirmedAt || app.submittedAt)}</td>
+                    <td><span className="badge badge-success">Confirmed</span></td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Link to={`/officer/application/${app.id}`} className="btn-review">Review / Send to VC</Link>
+                        <button
+                          type="button"
+                          className="secondary-btn compact"
+                          onClick={() => handleDeleteApplication(app.id, app.studentName)}
+                          title="Delete application"
+                          style={{ padding: '4px 8px', borderColor: '#d1d5db' }}
+                        >
+                          <Trash2 size={13} color="#6b7280" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
                 )) : <tr><td colSpan="6">No confirmed applications waiting to be sent to VC.</td></tr>}
               </tbody>
             </table>
@@ -150,7 +190,28 @@ export default function OfficerDashboardPage() {
             </thead>
             <tbody>
               {[...filteredApplications].sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt)).slice(0, 6).map((app) => (
-                <tr key={app.id}><td>{app.id}</td><td>{app.studentName}</td><td>{app.emisId}</td><td>{app.coursePreference?.firstPreference || '—'}</td><td><span className={`badge ${app.status === 'Enquiring' ? 'badge-warning' : 'badge-success'}`}>{app.status}</span></td><td>{formatDate(app.submittedAt)}</td><td><Link to={`/officer/application/${app.id}`} className="btn-review">Review <ArrowRight size={14} /></Link></td></tr>
+                <tr key={app.id}>
+                  <td>{app.id}</td>
+                  <td>{app.studentName}</td>
+                  <td>{app.emisId}</td>
+                  <td>{app.coursePreference?.firstPreference || '—'}</td>
+                  <td><span className={`badge ${app.status === 'Enquiring' ? 'badge-warning' : 'badge-success'}`}>{app.status}</span></td>
+                  <td>{formatDate(app.submittedAt)}</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Link to={`/officer/application/${app.id}`} className="btn-review">Review <ArrowRight size={14} /></Link>
+                      <button
+                        type="button"
+                        className="secondary-btn compact"
+                        onClick={() => handleDeleteApplication(app.id, app.studentName)}
+                        title="Delete application"
+                        style={{ padding: '4px 8px', borderColor: '#d1d5db' }}
+                      >
+                        <Trash2 size={13} color="#6b7280" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
               ))}
             </tbody>
           </table>

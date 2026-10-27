@@ -808,47 +808,58 @@ export default function RegisterPage() {
     </div>
   );
 
-  const renderDocumentsStep = () => (
-    <div className="card-list">
-      <h3>Upload documents (optional)</h3>
-      <div className="certificate-upload-grid">
-        {Object.entries(certificateLabels).map(([key, label]) => (
-          <FileUploadField
-            key={key}
-            label={label}
-            imageOnly={key === 'PassportSizePhotographs'}
-            value={formData.documents?.[key] || null}
-            onChange={(file) => setFormData((previous) => ({
-              ...previous,
-              documents: { ...previous.documents, [key]: file },
-            }))}
-          />
-        ))}
-      </div>
+  const renderDocumentsStep = () => {
+    const allUploadedFiles = [
+      ...Object.values(formData.documents || {}),
+      formData.studentSignature,
+      formData.parentSignature,
+      formData.cashReceipt,
+    ].filter(Boolean);
 
-      <div className="signature-sections">
-        <section className="signature-section">
-          <h3>Student Signature</h3>
-          <FileUploadField
-            label="Student signature (required)"
-            signature
-            value={formData.studentSignature}
-            onChange={(file) => updateField('studentSignature', file)}
-          />
-          {errors.studentSignature ? <small className="error-text">{errors.studentSignature}</small> : null}
-        </section>
-        <section className="signature-section">
-          <h3>Parent Signature</h3>
-          <FileUploadField
-            label="Parent signature (required)"
-            signature
-            value={formData.parentSignature}
-            onChange={(file) => updateField('parentSignature', file)}
-          />
-          {errors.parentSignature ? <small className="error-text">{errors.parentSignature}</small> : null}
-        </section>
-      </div>
-      <p className="upload-storage-note">Files are kept in this browser demo only; they are not uploaded to a server. Signature images are for preview and are not identity verification.</p>
+    return (
+      <div className="card-list">
+        <h3>Upload documents (optional)</h3>
+        <div className="certificate-upload-grid">
+          {Object.entries(certificateLabels).map(([key, label]) => (
+            <FileUploadField
+              key={key}
+              label={label}
+              imageOnly={key === 'PassportSizePhotographs'}
+              value={formData.documents?.[key] || null}
+              existingFiles={allUploadedFiles}
+              onChange={(file) => setFormData((previous) => ({
+                ...previous,
+                documents: { ...previous.documents, [key]: file },
+              }))}
+            />
+          ))}
+        </div>
+
+        <div className="signature-sections">
+          <section className="signature-section">
+            <h3>Student Signature</h3>
+            <FileUploadField
+              label="Student signature (required)"
+              signature
+              value={formData.studentSignature}
+              existingFiles={allUploadedFiles}
+              onChange={(file) => updateField('studentSignature', file)}
+            />
+            {errors.studentSignature ? <small className="error-text">{errors.studentSignature}</small> : null}
+          </section>
+          <section className="signature-section">
+            <h3>Parent Signature</h3>
+            <FileUploadField
+              label="Parent signature (required)"
+              signature
+              value={formData.parentSignature}
+              existingFiles={allUploadedFiles}
+              onChange={(file) => updateField('parentSignature', file)}
+            />
+            {errors.parentSignature ? <small className="error-text">{errors.parentSignature}</small> : null}
+          </section>
+        </div>
+        <p className="upload-storage-note">Files are kept in this browser demo only; they are not uploaded to a server. Signature images are for preview and are not identity verification.</p>
 
       <div className="declaration-panel">
         <label className="checkbox-row">
@@ -863,7 +874,8 @@ export default function RegisterPage() {
         {errors.parentDeclaration ? <small className="error-text">{errors.parentDeclaration}</small> : null}
       </div>
     </div>
-  );
+    );
+  };
 
   const renderFeeStructureStep = () => {
     return (

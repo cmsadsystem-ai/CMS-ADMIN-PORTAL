@@ -5,6 +5,7 @@ import {
   fetchApplicationsApi,
   submitApplicationApi,
   updateApplicationApi,
+  deleteApplicationApi,
   fetchSettingApi,
   saveSettingApi,
   sendApplicationStatusEmail,
@@ -143,14 +144,18 @@ export function AppProvider({ children }) {
   };
 
   const updateApplication = (applicationId, updates, comment, actor) => {
+    let targetApp = null;
+    let oldStatus = null;
     setApplications((current) => {
       const next = current.map((item) => {
         if (item.id !== applicationId) return item;
-        return {
+        oldStatus = item.status;
+        targetApp = {
           ...item,
           ...updates,
           updatedAt: new Date().toISOString(),
         };
+        return targetApp;
       });
       if (comment) {
         addHistoryEntry(applicationId, comment, actor);
@@ -158,6 +163,17 @@ export function AppProvider({ children }) {
       return next;
     });
     updateApplicationApi(applicationId, updates, comment, actor);
+
+    if (updates.status && updates.status !== oldStatus && targetApp?.email) {
+      sendApplicationStatusEmail({
+        to: targetApp.email,
+        studentName: targetApp.studentName,
+        applicationId,
+        status: updates.status,
+        course: targetApp.coursePreference?.firstPreference,
+        applicationDetails: targetApp,
+      }).catch(() => {});
+    }
   };
 
   const submitApplication = (formData) => {
@@ -191,6 +207,7 @@ export function AppProvider({ children }) {
         applicationId: generatedId,
         status: 'Enquiring',
         course: appRecord.coursePreference?.firstPreference,
+        applicationDetails: appRecord,
       }).catch(() => {});
     }
 
@@ -219,8 +236,14 @@ export function AppProvider({ children }) {
         applicationId,
         status: 'Confirmed',
         course: confirmedApp.coursePreference?.firstPreference,
+        applicationDetails: confirmedApp,
       }).catch(() => {});
     }
+  };
+
+  const deleteApplication = async (applicationId) => {
+    setApplications((current) => current.filter((item) => item.id !== applicationId));
+    await deleteApplicationApi(applicationId).catch(() => {});
   };
 
   const forwardApplicationToVC = (applicationId, actor = 'Admission Officer') => {
@@ -263,6 +286,7 @@ export function AppProvider({ children }) {
     submitApplication,
     updateApplication,
     confirmApplication,
+    deleteApplication,
     forwardApplicationToVC,
     addHistoryEntry,
     dismissDraft,

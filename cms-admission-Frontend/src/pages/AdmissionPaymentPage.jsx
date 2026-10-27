@@ -64,6 +64,11 @@ export default function AdmissionPaymentPage() {
           <FileUploadField
             label="Upload Cash Bill / Payment Receipt (optional)"
             value={draft.cashReceipt || null}
+            existingFiles={[
+              ...Object.values(draft.documents || {}),
+              draft.studentSignature,
+              draft.parentSignature,
+            ].filter(Boolean)}
             onChange={(file) => {
               saveDraft({ ...draft, cashReceipt: file });
             }}

@@ -12,7 +12,14 @@ function readAsDataUrl(file) {
   });
 }
 
-export default function FileUploadField({ label, value, onChange, signature = false, imageOnly = false }) {
+export default function FileUploadField({
+  label,
+  value,
+  onChange,
+  signature = false,
+  imageOnly = false,
+  existingFiles = [],
+}) {
   const [error, setError] = useState('');
   const [isViewing, setIsViewing] = useState(false);
   const [isCropping, setIsCropping] = useState(false);
@@ -36,6 +43,20 @@ export default function FileUploadField({ label, value, onChange, signature = fa
 
     try {
       const dataUrl = await readAsDataUrl(file);
+
+      // Duplicate upload prevention: Compare content/dataUrl against other uploaded files for this application
+      const isDuplicate = existingFiles.some((existing) => {
+        if (!existing || !existing.dataUrl) return false;
+        // If it's the exact same file currently assigned to this field, allow it
+        if (value?.dataUrl && existing.dataUrl === value.dataUrl) return false;
+        return existing.dataUrl === dataUrl;
+      });
+
+      if (isDuplicate) {
+        setError('Duplicate file detected. This document/file content has already been uploaded for this application.');
+        return;
+      }
+
       onChange({
         name: file.name,
         mimeType: isPdf ? 'application/pdf' : file.type,
