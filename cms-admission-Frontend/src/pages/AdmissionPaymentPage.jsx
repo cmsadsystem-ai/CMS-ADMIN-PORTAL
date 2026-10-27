@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { QRCodeSVG } from 'qrcode.react';
 import { formatCurrency } from '../utils/helpers';
+import FileUploadField from '../components/FileUploadField';
 
 const DEMO_PAYMENT_QR_VALUE = 'CMS ADMISSION PAYMENT DEMO ONLY - NO PAYMENT ADDRESS';
 
 export default function AdmissionPaymentPage() {
   const navigate = useNavigate();
-  const { draft, paymentSettings, submitApplication } = useAppContext();
+  const { draft, saveDraft, paymentSettings, submitApplication } = useAppContext();
   const paymentQr = paymentSettings.paymentQrs?.[0] || paymentSettings.paymentQr || null;
 
   const handleConfirm = () => {
@@ -55,6 +56,18 @@ export default function AdmissionPaymentPage() {
           <p>{paymentQr?.dataUrl ? 'QR image configured by the college.' : 'Demo placeholder only; no payment destination is configured.'}</p>
           <p className="payment-upi-id"><strong>UPI ID:</strong> <code>{paymentSettings.upiId || 'Not configured'}</code></p>
           <p>Scanning a demo placeholder does not send money or notify the college. Payments are not processed or verified on this page.</p>
+        </section>
+
+        <section className="payment-cash-section" style={{ background: 'rgba(255,255,255,0.38)', padding: '16px', borderRadius: '12px', marginTop: '16px', border: '1px solid rgba(0,77,56,0.12)' }}>
+          <h3 style={{ margin: '0 0 8px', fontSize: '1.05rem', color: '#004D38' }}>Cash Payment / Bank Receipt</h3>
+          <p style={{ margin: '0 0 12px', fontSize: '0.85rem' }}>Students paying by cash at the college counter or bank deposit can upload their cash bill or receipt here.</p>
+          <FileUploadField
+            label="Upload Cash Bill / Payment Receipt (optional)"
+            value={draft.cashReceipt || null}
+            onChange={(file) => {
+              saveDraft({ ...draft, cashReceipt: file });
+            }}
+          />
         </section>
 
         <section className="payment-status" aria-live="polite" style={{ background: 'rgba(255,255,255,0.38)' }}>

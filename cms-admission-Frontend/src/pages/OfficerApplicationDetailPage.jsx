@@ -124,15 +124,40 @@ export default function OfficerApplicationDetailPage() {
         <div className="content-panel form-panel detail-panel">
           <div className="preview-grid two-column">
             <div className="field-group"><label>Student name</label><input value={draftApplication.studentName || ''} onChange={(event) => setDraftApplication((prev) => ({ ...prev, studentName: event.target.value }))} /></div>
+            <div className="field-group"><label>Email ID</label><input value={draftApplication.email || ''} onChange={(event) => setDraftApplication((prev) => ({ ...prev, email: event.target.value }))} /></div>
             <div className="field-group"><label>EMIS ID</label><input value={draftApplication.emisId || ''} onChange={(event) => setDraftApplication((prev) => ({ ...prev, emisId: event.target.value }))} /></div>
             <div className="field-group"><label>Application date</label><input type="date" value={draftApplication.applicationDate || ''} onChange={(event) => setDraftApplication((prev) => ({ ...prev, applicationDate: event.target.value }))} /></div>
+            <div className="field-group"><label>Date of Birth</label><input type="date" value={draftApplication.dateOfBirth || ''} onChange={(event) => setDraftApplication((prev) => ({ ...prev, dateOfBirth: event.target.value }))} /></div>
+            <div className="field-group"><label>Gender</label><input value={draftApplication.gender || ''} onChange={(event) => setDraftApplication((prev) => ({ ...prev, gender: event.target.value }))} /></div>
+            <div className="field-group"><label>Aadhaar Number</label><input value={draftApplication.aadhaar || ''} onChange={(event) => setDraftApplication((prev) => ({ ...prev, aadhaar: event.target.value }))} /></div>
+            <div className="field-group"><label>Blood Group</label><input value={draftApplication.bloodGroup || ''} onChange={(event) => setDraftApplication((prev) => ({ ...prev, bloodGroup: event.target.value }))} /></div>
+            <div className="field-group"><label>Community</label><input value={draftApplication.community || ''} onChange={(event) => setDraftApplication((prev) => ({ ...prev, community: event.target.value }))} /></div>
+            <div className="field-group"><label>Category</label><input value={draftApplication.category || ''} onChange={(event) => setDraftApplication((prev) => ({ ...prev, category: event.target.value }))} /></div>
+            <div className="field-group"><label>Student Mobile</label><input value={draftApplication.studentMobile || ''} onChange={(event) => setDraftApplication((prev) => ({ ...prev, studentMobile: event.target.value }))} /></div>
+            <div className="field-group"><label>Admission Category</label><input value={draftApplication.admissionCategory || ''} onChange={(event) => setDraftApplication((prev) => ({ ...prev, admissionCategory: event.target.value }))} /></div>
+            <div className="field-group"><label>Programme / Degree</label><input value={`${draftApplication.programme || ''} ${draftApplication.degree ? `- ${draftApplication.degree}` : ''}`} readOnly /></div>
+            <div className="field-group"><label>Selected Course</label><input value={draftApplication.coursePreference?.firstPreference || ''} onChange={(event) => setDraftApplication((prev) => ({ ...prev, coursePreference: { ...prev.coursePreference, firstPreference: event.target.value } }))} /></div>
+            <div className="field-group"><label>First Graduate (FG)</label><input value={draftApplication.firstGraduate || ''} readOnly /></div>
             <div className="field-group"><label>Status</label><input value={draftApplication.status || ''} readOnly /></div>
+            <div className="field-group full-width"><label>Communication Address</label><textarea value={draftApplication.communicationAddress || ''} onChange={(event) => setDraftApplication((prev) => ({ ...prev, communicationAddress: event.target.value }))} rows="2" /></div>
+            <div className="field-group"><label>District / State / PIN</label><input value={`${draftApplication.district || ''}, ${draftApplication.state || ''} - ${draftApplication.pinCode || ''}`} readOnly /></div>
+            <div className="field-group"><label>Accommodation / Transport</label><input value={`${draftApplication.accommodation || 'Not specified'}${draftApplication.busRoute ? ` (Route: ${draftApplication.busRoute})` : ''}`} readOnly /></div>
+            <div className="field-group"><label>Father Name / Mobile</label><input value={`${draftApplication.fatherName || '—'} / ${draftApplication.fatherMobile || draftApplication.parentMobile || '—'} (${draftApplication.fatherOccupation || '—'})`} readOnly /></div>
+            <div className="field-group"><label>Mother Name / Mobile</label><input value={`${draftApplication.motherName || '—'} / ${draftApplication.motherMobile || '—'} (${draftApplication.motherOccupation || '—'})`} readOnly /></div>
+            <div className="field-group"><label>Guardian Name / Mobile</label><input value={`${draftApplication.guardianName || '—'} / ${draftApplication.guardianMobile || '—'} (${draftApplication.guardianOccupation || '—'})`} readOnly /></div>
+            <div className="field-group"><label>School Name & Address</label><input value={`${draftApplication.schoolName || '—'}, ${draftApplication.schoolAddress || '—'}`} readOnly /></div>
+            <div className="field-group"><label>Class 12 / HSC Total Marks</label><input value={`${draftApplication.hscMarks ?? '—'} / 600`} readOnly /></div>
+            <div className="field-group"><label>PCM Marks (Maths / Physics / Chem)</label><input value={`M: ${draftApplication.mathematics ?? '—'}, P: ${draftApplication.physicsMarks ?? '—'}, C: ${draftApplication.chemistryMarks ?? '—'}`} readOnly /></div>
+            <div className="field-group"><label>Cutoff Marks</label><input value={`${draftApplication.cutOffMarks ? Number(draftApplication.cutOffMarks).toFixed(2) : '—'} / 200`} readOnly /></div>
             <div className="field-group full-width"><label>Correction notes</label><textarea value={note} onChange={(event) => setNote(event.target.value)} rows="3" placeholder="Add officer corrections or notes" /></div>
             <div className="field-group full-width"><label>Student declaration</label><textarea value={draftApplication.declaration ? 'Accepted' : 'Not accepted'} readOnly /></div>
           </div>
 
           <ApplicationDocuments
-            documents={draftApplication.documents}
+            documents={{
+              ...(draftApplication.documents || {}),
+              ...(draftApplication.cashReceipt?.dataUrl ? { cashReceipt: draftApplication.cashReceipt } : {}),
+            }}
             signature={draftApplication.signature}
             studentSignature={draftApplication.studentSignature}
             parentSignature={draftApplication.parentSignature}

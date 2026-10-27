@@ -130,7 +130,7 @@ export default function RegisterPage() {
     );
     const isValidHscMark = formData.hscMarks !== '' && formData.hscMarks !== null
       && formData.hscMarks !== undefined && Number.isFinite(Number(formData.hscMarks))
-      && Number(formData.hscMarks) >= 0;
+      && Number(formData.hscMarks) >= 0 && Number(formData.hscMarks) <= 600;
     const stepsComplete = [
       Boolean(formData.admissionCategory),
       Boolean(formData.programme && formData.degree
@@ -138,10 +138,11 @@ export default function RegisterPage() {
       ['Yes', 'No'].includes(formData.firstGraduate),
       Boolean(
         ['studentName', 'dateOfBirth', 'gender', 'aadhaar', 'bloodGroup', 'community', 'category',
-          'studentMobile', 'communicationAddress', 'district', 'state', 'pinCode']
+          'studentMobile', 'email', 'communicationAddress', 'district', 'state', 'pinCode']
           .every((field) => String(formData[field] || '').trim())
         && formData.dateOfBirth <= todayDate
         && !getIndianMobileError(formData.studentMobile)
+        && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(formData.email || '').trim())
         && /^\d{12}$/.test(formData.aadhaar.replace(/\s/g, ''))
         && /^\d{6}$/.test(formData.pinCode),
       ),
@@ -247,6 +248,11 @@ export default function RegisterPage() {
         const mobileError = getIndianMobileError(formData.studentMobile);
         if (mobileError) nextErrors.studentMobile = mobileError;
       }
+      if (!String(formData.email || '').trim()) {
+        nextErrors.email = 'Email ID is required.';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(formData.email || '').trim())) {
+        nextErrors.email = 'Enter a valid email address.';
+      }
       if (formData.aadhaar && !/^\d{12}$/.test(formData.aadhaar.replace(/\s/g, ''))) {
         nextErrors.aadhaar = 'Aadhaar number must contain 12 digits.';
       }
@@ -282,6 +288,8 @@ export default function RegisterPage() {
       if (!String(formData.schoolAddress || '').trim()) nextErrors.schoolAddress = 'School address is required.';
       if (formData.hscMarks === '' || formData.hscMarks === null || formData.hscMarks === undefined) {
         nextErrors.hscMarks = 'Class 12 / HSC marks are required.';
+      } else if (!Number.isFinite(Number(formData.hscMarks)) || Number(formData.hscMarks) < 0 || Number(formData.hscMarks) > 600) {
+        nextErrors.hscMarks = 'Class 12 total marks must be between 0 and 600.';
       }
       requiredMarks.forEach((field) => {
         const value = formData[field];
@@ -290,9 +298,6 @@ export default function RegisterPage() {
           nextErrors[field] = 'Enter a valid mark from 0 to 100.';
         }
       });
-      if (formData.hscMarks !== '' && (!Number.isFinite(Number(formData.hscMarks)) || Number(formData.hscMarks) < 0)) {
-        nextErrors.hscMarks = 'Enter a valid non-negative HSC mark.';
-      }
     }
 
     if (currentStep === 8) {
@@ -349,6 +354,7 @@ export default function RegisterPage() {
           gender: record.gender,
           aadhaar: formatAadhaar(record.aadhaar),
           studentMobile: record.studentMobile,
+          email: record.email || previous.email || '',
           parentMobile: record.parentMobile,
           fatherMobile: record.parentMobile,
           community: record.community,
@@ -582,6 +588,19 @@ export default function RegisterPage() {
         </div>
         {errors.studentMobile ? <small className="error-text">{errors.studentMobile}</small> : null}
       </div>
+      <div className="field-group">
+        <label htmlFor="email">Email ID <span className="required-indicator">*</span></label>
+        <input
+          id="email"
+          type="email"
+          required
+          autoComplete="email"
+          placeholder="student@example.com"
+          value={formData.email || ''}
+          onChange={(event) => updateField('email', event.target.value)}
+        />
+        {errors.email ? <small className="error-text">{errors.email}</small> : null}
+      </div>
       <div className="field-group full-width">
         <label htmlFor="communicationAddress">Communication Address <span className="required-indicator">*</span></label>
         <textarea id="communicationAddress" required rows="3" value={formData.communicationAddress || ''} onChange={(event) => updateField('communicationAddress', event.target.value)} />
@@ -721,8 +740,33 @@ export default function RegisterPage() {
         {errors.schoolAddress ? <small className="error-text">{errors.schoolAddress}</small> : null}
       </div>
       <div className="field-group">
-        <label htmlFor="hscMarks">Class 12 / HSC Marks <span className="required-indicator">*</span></label>
-        <input id="hscMarks" type="number" required min="0" step="any" value={formData.hscMarks ?? ''} onChange={(event) => updateField('hscMarks', event.target.value)} />
+        <label htmlFor="hscMarks">Class 12 / HSC Marks (out of 600) <span className="required-indicator">*</span></label>
+        <input
+          id="hscMarks"
+          type="number"
+          required
+          min="0"
+          max="600"
+          step="any"
+          placeholder="0 - 600"
+          value={formData.hscMarks ?? ''}
+          onWheel={(e) => e.target.blur()}
+          onChange={(event) => {
+            const rawVal = event.target.value;
+            if (rawVal === '') {
+              updateField('hscMarks', '');
+            } else {
+              const num = Number(rawVal);
+              if (num > 600) {
+                updateField('hscMarks', 600);
+              } else if (num < 0) {
+                updateField('hscMarks', 0);
+              } else {
+                updateField('hscMarks', rawVal);
+              }
+            }
+          }}
+        />
         {errors.hscMarks ? <small className="error-text">{errors.hscMarks}</small> : null}
       </div>
       {requiredMarks.map((field) => (
@@ -734,8 +778,24 @@ export default function RegisterPage() {
             min="0"
             max="100"
             step="any"
+            placeholder="0 - 100"
             value={formData[field] ?? ''}
-            onChange={(event) => updateField(field, event.target.value)}
+            onWheel={(e) => e.target.blur()}
+            onChange={(event) => {
+              const rawVal = event.target.value;
+              if (rawVal === '') {
+                updateField(field, '');
+              } else {
+                const num = Number(rawVal);
+                if (num > 100) {
+                  updateField(field, 100);
+                } else if (num < 0) {
+                  updateField(field, 0);
+                } else {
+                  updateField(field, rawVal);
+                }
+              }
+            }}
           />
           {errors[field] ? <small className="error-text">{errors[field]}</small> : null}
         </div>

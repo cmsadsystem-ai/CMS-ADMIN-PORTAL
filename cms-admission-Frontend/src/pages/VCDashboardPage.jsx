@@ -72,7 +72,7 @@ export default function VCDashboardPage() {
             </thead>
             <tbody>
               {filteredSentToVC.length ? filteredSentToVC.map((app) => (
-                <tr key={app.id}><td>{app.id}</td><td>{app.studentName}</td><td>{app.emisId}</td><td>{app.coursePreference?.firstPreference || '—'}</td><td>{app.admissionCategory || '—'}</td><td>{formatDate(app.forwardedAt || app.confirmedAt || app.submittedAt)}</td><td><span className="badge badge-success">{app.status}</span></td><td><Link to={`/vc/confirmed/${app.id}`}>Open</Link></td></tr>
+                <tr key={app.id}><td>{app.id}</td><td>{app.studentName}</td><td>{app.emisId}</td><td>{app.coursePreference?.firstPreference || '—'}</td><td>{app.admissionCategory || '—'}</td><td>{formatDate(app.forwardedAt || app.confirmedAt || app.submittedAt)}</td><td><span className="badge badge-success">{app.status}</span></td><td><Link to={`/vc/confirmed/${app.id}`} className="btn-review">Review / Open</Link></td></tr>
               )) : <tr><td colSpan="8">{sentToVC.length ? 'No forwarded applications match your search.' : 'No applications have been sent to VC yet.'}</td></tr>}
             </tbody>
           </table>

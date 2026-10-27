@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, CreditCard, Printer, Save, Send } from 'lucide-react';
+import { ArrowLeft, CreditCard, Eye, Printer, Save, Send, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { calculateCutoff, formatDate } from '../utils/helpers';
@@ -31,6 +31,7 @@ export default function ApplicationPreviewPage() {
   const { draft, saveDraft, submitApplication } = useAppContext();
   const [staffViewName, setStaffViewName] = useState(draft.staffViewName || '');
   const [staffViewCategory, setStaffViewCategory] = useState(draft.staffViewCategory || '');
+  const [selectedFilePreview, setSelectedFilePreview] = useState(null);
   const cutoff = calculateCutoff({
     mathematics: draft.mathematics,
     physics: draft.physicsMarks,
@@ -102,6 +103,7 @@ export default function ApplicationPreviewPage() {
             ['Full name', draft.studentName],
             ['Date of birth', formatDate(draft.dateOfBirth)],
             ['Gender', draft.gender],
+            ['Email ID', draft.email],
             ['Aadhaar number', String(draft.aadhaar || '').replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ')],
             ['Blood group', draft.bloodGroup],
             ['Community', draft.community],
@@ -139,6 +141,7 @@ export default function ApplicationPreviewPage() {
             ['Transport requirements', draft.accommodation === 'Day Scholar' ? draft.transportRequirements : ''],
             ['Student declaration', draft.declaration ? 'Accepted' : 'Not accepted'],
             ['Parent declaration', draft.parentDeclaration ? 'Accepted' : 'Not accepted'],
+            ['Cash payment receipt', draft.cashReceipt?.name ? 'Uploaded' : 'Not uploaded'],
           ]} />
         </div>
 
@@ -176,10 +179,30 @@ export default function ApplicationPreviewPage() {
           <h3 style={{ margin: 0, padding: '4px 6px', fontSize: '0.9rem', background: '#edf2ef', border: '1px solid #68756f' }}>Documents submitted</h3>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
             <tbody>
-              {Object.entries(draft.documents || {}).filter(([, file]) => file?.dataUrl).map(([key, file]) => (
-                <tr key={key}><th style={{ width: '34%', padding: '3px 6px', border: '1px solid #87918c', textAlign: 'left', fontWeight: 500 }}>{key}</th><td style={{ padding: '3px 6px', border: '1px solid #87918c' }}>{file.name}</td></tr>
+              {Object.entries({
+                ...(draft.documents || {}),
+                ...(draft.cashReceipt?.dataUrl ? { cashReceipt: draft.cashReceipt } : {}),
+              }).filter(([, file]) => file?.dataUrl).map(([key, file]) => (
+                <tr key={key}>
+                  <th style={{ width: '34%', padding: '3px 6px', border: '1px solid #87918c', textAlign: 'left', fontWeight: 500 }}>
+                    {key === 'cashReceipt' ? 'Cash Bill / Receipt' : key}
+                  </th>
+                  <td style={{ padding: '3px 6px', border: '1px solid #87918c' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                      <span>{file.name}</span>
+                      <button
+                        type="button"
+                        className="secondary-btn compact"
+                        style={{ padding: '2px 8px', fontSize: '0.72rem' }}
+                        onClick={() => setSelectedFilePreview({ title: key, file })}
+                      >
+                        <Eye size={12} /> View File
+                      </button>
+                    </div>
+                  </td>
+                </tr>
               ))}
-              {!Object.values(draft.documents || {}).some((file) => file?.dataUrl) ? (
+              {!Object.values(draft.documents || {}).some((file) => file?.dataUrl) && !draft.cashReceipt?.dataUrl ? (
                 <tr><td colSpan="2" style={{ padding: '3px 6px', border: '1px solid #87918c' }}>No optional documents uploaded.</td></tr>
               ) : null}
             </tbody>
@@ -245,6 +268,93 @@ export default function ApplicationPreviewPage() {
           </button>
         </div>
       </section>
+
+      {selectedFilePreview ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={selectedFilePreview.title}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.75)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+          }}
+          onClick={() => setSelectedFilePreview(null)}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '12px',
+              maxWidth: '900px',
+              width: '100%',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 18px',
+                borderBottom: '1px solid #e2e8f0',
+                background: '#f8fafc',
+              }}
+            >
+              <div>
+                <strong style={{ fontSize: '1rem', color: '#1e293b' }}>{selectedFilePreview.title}</strong>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>{selectedFilePreview.file.name}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedFilePreview(null)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                aria-label="Close preview"
+              >
+                <X size={20} color="#334155" />
+              </button>
+            </div>
+            <div style={{ flex: 1, overflow: 'auto', padding: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f1f5f9' }}>
+              {selectedFilePreview.file.mimeType === 'application/pdf' ? (
+                <iframe
+                  src={selectedFilePreview.file.dataUrl}
+                  title={selectedFilePreview.title}
+                  style={{ width: '100%', height: '70vh', border: 'none', borderRadius: '6px' }}
+                />
+              ) : (
+                <img
+                  src={selectedFilePreview.file.dataUrl}
+                  alt={selectedFilePreview.title}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '70vh',
+                    objectFit: 'contain',
+                    transform: `rotate(${Number(selectedFilePreview.file.rotation || 0)}deg)`,
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

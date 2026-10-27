@@ -82,3 +82,32 @@ export async function saveSettingApi(key, value) {
     body: JSON.stringify({ value }),
   });
 }
+
+export const DEFAULT_ENQUIRING_EMAIL = 'admissions@cms.edu.in';
+
+export async function sendApplicationStatusEmail({
+  to,
+  studentName,
+  applicationId,
+  status,
+  course,
+  enquiringEmail = DEFAULT_ENQUIRING_EMAIL,
+}) {
+  if (!to) return { ok: false, error: 'Student email is required.' };
+
+  const payload = {
+    to,
+    studentName,
+    applicationId,
+    status, // 'Enquiring' or 'Confirmed'
+    course,
+    enquiringEmail,
+    sentAt: new Date().toISOString(),
+  };
+
+  // Connect to backend email endpoint without fake success alerts if backend is unavailable
+  return safeFetch('/portal/email/send', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}

@@ -7,6 +7,7 @@ import {
   updateApplicationApi,
   fetchSettingApi,
   saveSettingApi,
+  sendApplicationStatusEmail,
 } from '../services/api';
 
 const AppContext = createContext(null);
@@ -182,22 +183,44 @@ export function AppProvider({ children }) {
     setDraft(getInitialDraft());
     writeStorage(STORAGE_KEYS.cmsDraftApplication, getInitialDraft());
     submitApplicationApi(appRecord);
+
+    if (appRecord.email) {
+      sendApplicationStatusEmail({
+        to: appRecord.email,
+        studentName: appRecord.studentName,
+        applicationId: generatedId,
+        status: 'Enquiring',
+        course: appRecord.coursePreference?.firstPreference,
+      }).catch(() => {});
+    }
+
     return appRecord;
   };
 
   const confirmApplication = (applicationId, actor = 'Admission Officer') => {
     const note = 'Application confirmed by admission office.';
+    let confirmedApp = null;
     setApplications((current) => current.map((item) => {
       if (item.id !== applicationId) return item;
-      return {
+      confirmedApp = {
         ...item,
         status: 'Confirmed',
         confirmedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+      return confirmedApp;
     }));
     addHistoryEntry(applicationId, note, actor);
     updateApplicationApi(applicationId, { status: 'Confirmed' }, note, actor);
+    if (confirmedApp?.email) {
+      sendApplicationStatusEmail({
+        to: confirmedApp.email,
+        studentName: confirmedApp.studentName,
+        applicationId,
+        status: 'Confirmed',
+        course: confirmedApp.coursePreference?.firstPreference,
+      }).catch(() => {});
+    }
   };
 
   const forwardApplicationToVC = (applicationId, actor = 'Admission Officer') => {

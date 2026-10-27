@@ -1,7 +1,7 @@
 export const PROGRAMME_COURSES = {
   UG: {
-    'B.E': ['CSE', 'BME', 'CS', 'ECE', 'MECH', 'Electrical and Computer Engineering'],
-    'B.Tech': ['AI&DS', 'AI&ML'],
+    'B.E': ['CSE', 'BME', 'CS', 'ECE', 'MECH', 'AIML', 'Electrical and Computer Engineering'],
+    'B.Tech': ['AI&DS'],
   },
   PG: {
     'M.E': ['VLSI', 'CSE', 'BME', 'ISE'],
@@ -101,6 +101,7 @@ export function getInitialDraft() {
     gender: '',
     aadhaar: '',
     studentMobile: '',
+    email: '',
     parentMobile: '',
     community: '',
     category: '',
@@ -144,6 +145,7 @@ export function getInitialDraft() {
     transportRequirements: '',
     certificates: {},
     documents: {},
+    cashReceipt: null,
     fees: {
       AdmissionFees: 5000,
       ConsortiumFees: 550,

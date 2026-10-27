@@ -1517,3 +1517,52 @@
     display: none;
   }
 }
+
+/* 2. Education & Marks: Remove unnecessary increment/decrement controls (spinners) & prevent scroll */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* 4. Buttons: Make all existing Previous, Next, and Save buttons green */
+.form-actions button.secondary-btn,
+.form-actions button.primary-btn {
+  background: linear-gradient(135deg, var(--primary, #006747), var(--primary-deep, #004d38)) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(0, 77, 56, 0.4) !important;
+}
+
+.form-actions button.secondary-btn:hover,
+.form-actions button.primary-btn:hover {
+  background: linear-gradient(135deg, #00563b, #003e2c) !important;
+  color: #ffffff !important;
+}
+
+/* 4. Buttons: Make Admin and VC dashboard Review buttons dark-colored */
+.btn-review,
+.data-table a.btn-review {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid #0f172a;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-review:hover,
+.data-table a.btn-review:hover {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  transform: translateY(-1px);
+}
+

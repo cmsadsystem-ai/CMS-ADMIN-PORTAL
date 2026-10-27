@@ -1,4 +1,4 @@
-import { Camera, FileUp, ImagePlus, RotateCw, Trash2 } from 'lucide-react';
+import { Camera, Eye, FileUp, ImagePlus, RotateCw, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -14,6 +14,7 @@ function readAsDataUrl(file) {
 
 export default function FileUploadField({ label, value, onChange, signature = false, imageOnly = false }) {
   const [error, setError] = useState('');
+  const [isViewing, setIsViewing] = useState(false);
   const [isCropping, setIsCropping] = useState(false);
   const [cropSettings, setCropSettings] = useState({ zoom: 1, x: 0, y: 0 });
 
@@ -180,6 +181,13 @@ export default function FileUploadField({ label, value, onChange, signature = fa
             </div>
           ) : null}
           <div className="upload-actions">
+            <button
+              type="button"
+              className="secondary-btn compact"
+              onClick={() => setIsViewing(true)}
+            >
+              <Eye size={16} /> View File
+            </button>
             {value.mimeType !== 'application/pdf' ? (
               <>
                 <button type="button" className="secondary-btn compact" onClick={rotatePreview}>
@@ -193,6 +201,93 @@ export default function FileUploadField({ label, value, onChange, signature = fa
             <button type="button" className="secondary-btn compact" onClick={() => onChange(null)}>
               <Trash2 size={16} /> Remove
             </button>
+          </div>
+        </div>
+      ) : null}
+
+      {isViewing && value?.dataUrl ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={label}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.75)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+          }}
+          onClick={() => setIsViewing(false)}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '12px',
+              maxWidth: '900px',
+              width: '100%',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 18px',
+                borderBottom: '1px solid #e2e8f0',
+                background: '#f8fafc',
+              }}
+            >
+              <div>
+                <strong style={{ fontSize: '1rem', color: '#1e293b' }}>{label}</strong>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>{value.name}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsViewing(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                aria-label="Close preview"
+              >
+                <X size={20} color="#334155" />
+              </button>
+            </div>
+            <div style={{ flex: 1, overflow: 'auto', padding: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f1f5f9' }}>
+              {value.mimeType === 'application/pdf' ? (
+                <iframe
+                  src={value.dataUrl}
+                  title={label}
+                  style={{ width: '100%', height: '70vh', border: 'none', borderRadius: '6px' }}
+                />
+              ) : (
+                <img
+                  src={value.dataUrl}
+                  alt={label}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '70vh',
+                    objectFit: 'contain',
+                    transform: `rotate(${Number(value.rotation || 0)}deg)`,
+                  }}
+                />
+              )}
+            </div>
           </div>
         </div>
       ) : null}
