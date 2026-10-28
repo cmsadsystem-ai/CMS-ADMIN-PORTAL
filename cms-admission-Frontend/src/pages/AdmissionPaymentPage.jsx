@@ -15,10 +15,11 @@ export default function AdmissionPaymentPage() {
   const handleConfirm = async () => {
     const application = await submitApplication({
       ...draft,
+      status: 'Confirmed',
       admissionFeeAmount: 5000,
-      paymentStatus: 'Unpaid',
+      paymentStatus: 'Paid',
     });
-    navigate(`/application-success?id=${encodeURIComponent(application.id)}`);
+    navigate(`/application-success?id=${encodeURIComponent(application?.id || '')}`);
   };
 
   return (

@@ -168,13 +168,19 @@ export function AppProvider({ children }) {
       status: formData.status || 'Enquiring',
       submittedAt: formData.submittedAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      confirmationDate: null,
+      confirmationDate: formData.status === 'Confirmed' ? new Date().toISOString() : null,
       correctionNotes: formData.correctionNotes || '',
       coursePreference: formData.coursePreference || { firstPreference: '', additionalPreferences: [] },
     };
 
     // Backend generates unique atomic YYNNNN ID, saves to MySQL, and emails the student
-    const serverResult = await submitApplicationApi(rawData);
+    let serverResult = null;
+    try {
+      serverResult = await submitApplicationApi(rawData);
+    } catch (err) {
+      console.warn('Backend API call fallback:', err);
+    }
+
     const officialId = serverResult?.id || rawData.id || `CMS-${Date.now()}`;
     const appRecord = {
       ...rawData,

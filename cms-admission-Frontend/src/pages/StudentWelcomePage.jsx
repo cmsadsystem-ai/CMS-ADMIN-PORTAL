@@ -23,6 +23,11 @@ export default function StudentWelcomePage() {
             <h1>CMS College of Engineering</h1>
           </div>
         </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+          <button type="button" className="secondary-btn compact" onClick={() => navigate('/login/officer')}>
+            Admin Portal
+          </button>
+        </div>
       </header>
 
       <section className="hero-panel">

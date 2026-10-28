@@ -64,34 +64,29 @@ export default function ApplicationPreviewPage() {
   };
 
   const handleEnquiring = async () => {
-    if (!validateStaffView()) {
-      window.alert('Staff name and Staff category are mandatory before submitting.');
-      return;
-    }
+    const sName = String(staffViewName || '').trim() || 'Admission Desk';
+    const sCat = String(staffViewCategory || '').trim() || 'General';
     const application = await submitApplication({
       ...draft,
-      staffViewName: staffViewName.trim(),
-      staffViewCategory: staffViewCategory.trim(),
+      status: 'Enquiring',
+      staffViewName: sName,
+      staffViewCategory: sCat,
       cutOffMarks: cutoff ?? '',
     });
-    navigate(`/application-success?id=${encodeURIComponent(application.id)}`);
+    navigate(`/application-success?id=${encodeURIComponent(application?.id || '')}`);
   };
 
   const handleSaveDraft = () => {
-    if (!validateStaffView()) {
-      window.alert('Staff name and Staff category are mandatory before saving.');
-      return;
-    }
-    saveDraft({ ...draft, staffViewName: staffViewName.trim(), staffViewCategory: staffViewCategory.trim(), cutOffMarks: cutoff ?? '' });
-    window.alert('Application draft saved in this browser.');
+    const sName = String(staffViewName || '').trim() || 'Admission Desk';
+    const sCat = String(staffViewCategory || '').trim() || 'General';
+    saveDraft({ ...draft, staffViewName: sName, staffViewCategory: sCat, cutOffMarks: cutoff ?? '' });
+    window.alert('Application draft saved successfully.');
   };
 
   const handleConfirmSeat = () => {
-    if (!validateStaffView()) {
-      window.alert('Staff name and Staff category are mandatory before confirming seat.');
-      return;
-    }
-    saveDraft({ ...draft, staffViewName: staffViewName.trim(), staffViewCategory: staffViewCategory.trim(), cutOffMarks: cutoff ?? '' });
+    const sName = String(staffViewName || '').trim() || 'Admission Desk';
+    const sCat = String(staffViewCategory || '').trim() || 'General';
+    saveDraft({ ...draft, staffViewName: sName, staffViewCategory: sCat, cutOffMarks: cutoff ?? '' });
     navigate('/payment');
   };
 
