@@ -130,13 +130,13 @@ export default function ApplicationPreviewPage() {
             ['Gender', draft.gender],
             ['Email ID', draft.email],
             ['Aadhaar number', String(draft.aadhaar || '').replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ')],
-            ['Blood group', draft.bloodGroup],
+            ['Blood group', draft.bloodGroup === 'Others' && draft.bloodGroupOther ? `Others (${draft.bloodGroupOther})` : draft.bloodGroup],
             ['Community', draft.community],
             ['Category', draft.category],
             ['Mobile number', draft.studentMobile ? `+91 ${draft.studentMobile}` : ''],
             ['EMIS ID', draft.emisId],
-            ['District', draft.district],
             ['State', draft.state],
+            ['District', draft.district],
             ['PIN code', draft.pinCode],
             ['Communication address', draft.communicationAddress],
           ]} />
@@ -152,6 +152,7 @@ export default function ApplicationPreviewPage() {
             ['Guardian mobile number', draft.guardianMobile ? `+91 ${draft.guardianMobile}` : ''],
           ]} />
           <PreviewBlock title="School and education" rows={[
+            ['12th standard group', draft.hscGroup],
             ['School name', draft.schoolName],
             ['School address', draft.schoolAddress],
             ['Class 12 / HSC marks', draft.hscMarks],
@@ -161,9 +162,9 @@ export default function ApplicationPreviewPage() {
             ['Automatically calculated cutoff', cutoff === null ? 'Not calculated — enter valid subject marks' : `${cutoff.toFixed(2)} / 200`],
           ]} />
           <PreviewBlock title="Accommodation and declarations" rows={[
+            ['Transport requirement', draft.transportRequired || (draft.transportApplication === 'Yes' ? 'Yes' : (draft.accommodation === 'Day Scholar' ? 'Yes' : 'No'))],
+            ['Pickup point', draft.pickupPoint || draft.busRoute || (draft.transportRequired === 'No' ? 'Not applicable' : '')],
             ['Accommodation type', draft.accommodation],
-            ['Bus route', draft.accommodation === 'Day Scholar' ? draft.busRoute : ''],
-            ['Transport requirements', draft.accommodation === 'Day Scholar' ? draft.transportRequirements : ''],
             ['Student declaration', draft.declaration ? 'Accepted' : 'Not accepted'],
             ['Parent declaration', draft.parentDeclaration ? 'Accepted' : 'Not accepted'],
             ['Cash payment receipt', draft.cashReceipt?.name ? 'Uploaded' : 'Not uploaded'],
@@ -210,7 +211,7 @@ export default function ApplicationPreviewPage() {
               }).filter(([, file]) => file?.dataUrl).map(([key, file]) => (
                 <tr key={key}>
                   <th style={{ width: '34%', padding: '3px 6px', border: '1px solid #87918c', textAlign: 'left', fontWeight: 500 }}>
-                    {key === 'cashReceipt' ? 'Cash Bill / Receipt' : key}
+                    {key === 'cashReceipt' ? 'Cash Bill / Receipt' : (key === 'CC' || key === 'CommunityCertificate' ? 'Community Certificate' : key.replace(/([A-Z])/g, ' $1').trim())}
                   </th>
                   <td style={{ padding: '3px 6px', border: '1px solid #87918c' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, Save, Search } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Camera, CheckCircle2, Eye, ImagePlus, Save, Search, Trash2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import FileUploadField from '../components/FileUploadField';
+import SignaturePadBox from '../components/SignaturePadBox';
 import { fetchDemoStudent } from '../services/emisService';
 import { calculateCutoff, PROGRAMME_COURSES } from '../utils/helpers';
 
@@ -17,26 +17,218 @@ const steps = [
   'Documents and signatures',
   'Fees Structure',
 ];
+
 const certificateLabels = {
   SSLC: 'SSLC Certificate',
   HSC: 'HSC Certificate',
   TC: 'Transfer Certificate (TC)',
-  CC: 'Conduct Certificate (CC)',
+  CommunityCertificate: 'Community Certificate',
   NativityCertificate: 'Nativity Certificate',
   IncomeCertificate: 'Income Certificate',
   AadhaarCard: 'Aadhaar Document',
   FirstGraduateCertificate: 'First Graduate Certificate',
   PassportSizePhotographs: 'Student Photo',
 };
-const tamilNaduDistricts = [
-  'Ariyalur', 'Chengalpattu', 'Chennai', 'Coimbatore', 'Cuddalore', 'Dharmapuri',
-  'Dindigul', 'Erode', 'Kallakurichi', 'Kancheepuram', 'Kanniyakumari', 'Karur',
-  'Krishnagiri', 'Madurai', 'Mayiladuthurai', 'Nagapattinam', 'Namakkal',
-  'Nilgiris', 'Perambalur', 'Pudukkottai', 'Ramanathapuram', 'Ranipet',
-  'Salem', 'Sivaganga', 'Tenkasi', 'Thanjavur', 'Theni', 'Thoothukudi',
-  'Tiruchirappalli', 'Tirunelveli', 'Tirupathur', 'Tiruppur', 'Tiruvallur',
-  'Tiruvannamalai', 'Tiruvarur', 'Vellore', 'Viluppuram', 'Virudhunagar',
-];
+
+const stateDistrictsMap = {
+  'Tamil Nadu': [
+    'Ariyalur', 'Chengalpattu', 'Chennai', 'Coimbatore', 'Cuddalore', 'Dharmapuri',
+    'Dindigul', 'Erode', 'Kallakurichi', 'Kancheepuram', 'Kanniyakumari', 'Karur',
+    'Krishnagiri', 'Madurai', 'Mayiladuthurai', 'Nagapattinam', 'Namakkal',
+    'Nilgiris', 'Perambalur', 'Pudukkottai', 'Ramanathapuram', 'Ranipet',
+    'Salem', 'Sivaganga', 'Tenkasi', 'Thanjavur', 'Theni', 'Thoothukudi',
+    'Tiruchirappalli', 'Tirunelveli', 'Tirupathur', 'Tiruppur', 'Tiruvallur',
+    'Tiruvannamalai', 'Tiruvarur', 'Vellore', 'Viluppuram', 'Virudhunagar',
+  ],
+  'Kerala': [
+    'Alappuzha', 'Ernakulam', 'Idukki', 'Kannur', 'Kasaragod', 'Kollam',
+    'Kottayam', 'Kozhikode', 'Malappuram', 'Palakkad', 'Pathanamthitta',
+    'Thiruvananthapuram', 'Thrissur', 'Wayanad',
+  ],
+  'Karnataka': [
+    'Bagalkot', 'Ballari', 'Belagavi', 'Bengaluru Rural', 'Bengaluru Urban',
+    'Bidar', 'Chamarajanagar', 'Chikkaballapur', 'Chikkamagaluru', 'Chitradurga',
+    'Dakshina Kannada', 'Davanagere', 'Dharwad', 'Gadag', 'Hassan', 'Haveri',
+    'Kalaburagi', 'Kodagu', 'Kolar', 'Koppal', 'Mandya', 'Mysuru', 'Raichur',
+    'Ramanagara', 'Shivamogga', 'Tumakuru', 'Udupi', 'Uttara Kannada',
+    'Vijayanagara', 'Vijayapura', 'Yadgir',
+  ],
+  'Andhra Pradesh': [
+    'Alluri Sitharama Raju', 'Anakapalli', 'Ananthapuramu', 'Annamayya',
+    'Bapatla', 'Chittoor', 'Dr. B.R. Ambedkar Konaseema', 'East Godavari',
+    'Eluru', 'Guntur', 'Kakinada', 'Krishna', 'Kurnool', 'Nandyal', 'NTR',
+    'Palnadu', 'Parvathipuram Manyam', 'Prakasam', 'Srikakulam',
+    'Sri Potti Sriramulu Nellore', 'Sri Sathya Sai', 'Tirupati', 'Visakhapatnam',
+    'Vizianagaram', 'West Godavari', 'YSR Kadapa',
+  ],
+  'Telangana': [
+    'Adilabad', 'Bhadradri Kothagudem', 'Hyderabad', 'Jagtial', 'Jangaon',
+    'Jayashankar Bhupalpally', 'Jogulamba Gadwal', 'Kamareddy', 'Karimnagar',
+    'Khammam', 'Kumuram Bheem Asifabad', 'Mahabubabad', 'Mahabubnagar',
+    'Mancherial', 'Medak', 'Medchal-Malkajgiri', 'Mulugu', 'Nagarkurnool',
+    'Nalgonda', 'Narayanpet', 'Nirmal', 'Nizamabad', 'Peddapalli',
+    'Rajanna Sircilla', 'Rangareddy', 'Sangareddy', 'Siddipet', 'Suryapet',
+    'Vikarabad', 'Wanaparthy', 'Warangal', 'Hanamkonda', 'Yadadri Bhuvanagiri',
+  ],
+  'Puducherry': ['Karaikal', 'Mahe', 'Puducherry', 'Yanam'],
+  'Delhi': [
+    'Central Delhi', 'East Delhi', 'New Delhi', 'North Delhi', 'North East Delhi',
+    'North West Delhi', 'Shahdara', 'South Delhi', 'South East Delhi',
+    'South West Delhi', 'West Delhi',
+  ],
+  'Maharashtra': [
+    'Ahmednagar', 'Akola', 'Amravati', 'Aurangabad', 'Beed', 'Bhandara',
+    'Buldhana', 'Chandrapur', 'Dhule', 'Gadchiroli', 'Gondia', 'Hingoli',
+    'Jalgaon', 'Jalna', 'Kolhapur', 'Latur', 'Mumbai City', 'Mumbai Suburban',
+    'Nagpur', 'Nanded', 'Nandurbar', 'Nashik', 'Osmanabad', 'Palghar',
+    'Parbhani', 'Pune', 'Raigad', 'Ratnagiri', 'Sangli', 'Satara',
+    'Sindhudurg', 'Solapur', 'Thane', 'Wardha', 'Washim', 'Yavatmal',
+  ],
+  'Gujarat': [
+    'Ahmedabad', 'Amreli', 'Anand', 'Aravalli', 'Banaskantha', 'Bharuch',
+    'Bhavnagar', 'Botad', 'Chhota Udaipur', 'Dahod', 'Dang', 'Devbhoomi Dwarka',
+    'Gandhinagar', 'Gir Somnath', 'Jamnagar', 'Junagadh', 'Kheda', 'Kutch',
+    'Mahisagar', 'Mehsana', 'Morbi', 'Narmada', 'Navsari', 'Panchmahal',
+    'Patan', 'Porbandar', 'Rajkot', 'Sabarkantha', 'Surat', 'Surendranagar',
+    'Tapi', 'Vadodara', 'Valsad',
+  ],
+  'Rajasthan': [
+    'Ajmer', 'Alwar', 'Banswara', 'Baran', 'Barmer', 'Bharatpur', 'Bhilwara',
+    'Bikaner', 'Bundi', 'Chittorgarh', 'Churu', 'Dausa', 'Dholpur', 'Dungarpur',
+    'Hanumangarh', 'Jaipur', 'Jaisalmer', 'Jalore', 'Jhalawar', 'Jhunjhunu',
+    'Jodhpur', 'Karauli', 'Kota', 'Nagaur', 'Pali', 'Pratapgarh', 'Rajsamand',
+    'Sawai Madhopur', 'Sikar', 'Sirohi', 'Sri Ganganagar', 'Tonk', 'Udaipur',
+  ],
+  'Uttar Pradesh': [
+    'Agra', 'Aligarh', 'Ambedkar Nagar', 'Amethi', 'Amroha', 'Auraiya',
+    'Ayodhya', 'Azamgarh', 'Baghpat', 'Bahraich', 'Ballia', 'Balrampur',
+    'Banda', 'Barabanki', 'Bareilly', 'Basti', 'Bhadohi', 'Bijnor', 'Budaun',
+    'Bulandshahr', 'Chandauli', 'Chitrakoot', 'Deoria', 'Etah', 'Etawah',
+    'Farrukhabad', 'Fatehpur', 'Firozabad', 'Gautam Buddha Nagar', 'Ghaziabad',
+    'Ghazipur', 'Gonda', 'Gorakhpur', 'Hamirpur', 'Hapur', 'Hardoi', 'Hathras',
+    'Jalaun', 'Jaunpur', 'Jhansi', 'Kannauj', 'Kanpur Dehat', 'Kanpur Nagar',
+    'Kasganj', 'Kaushambi', 'Kushinagar', 'Lakhimpur Kheri', 'Lalitpur',
+    'Lucknow', 'Maharajganj', 'Mahoba', 'Mainpuri', 'Mathura', 'Mau',
+    'Meerut', 'Mirzapur', 'Moradabad', 'Muzaffarnagar', 'Pilibhit', 'Pratapgarh',
+    'Prayagraj', 'Raebareli', 'Rampur', 'Saharanpur', 'Sambhal', 'Sant Kabir Nagar',
+    'Shahjahanpur', 'Shamli', 'Shravasti', 'Siddharthnagar', 'Sitapur', 'Sonbhadra',
+    'Sultanpur', 'Unnao', 'Varanasi',
+  ],
+  'West Bengal': [
+    'Alipurduar', 'Bankura', 'Birbhum', 'Cooch Behar', 'Dakshin Dinajpur',
+    'Darjeeling', 'Hooghly', 'Howrah', 'Jalpaiguri', 'Jhargram', 'Kalimpong',
+    'Kolkata', 'Malda', 'Murshidabad', 'Nadia', 'North 24 Parganas',
+    'Paschim Bardhaman', 'Paschim Medinipur', 'Purba Bardhaman',
+    'Purba Medinipur', 'Purulia', 'South 24 Parganas', 'Uttar Dinajpur',
+  ],
+  'Bihar': [
+    'Araria', 'Arwal', 'Aurangabad', 'Banka', 'Begusarai', 'Bhagalpur', 'Bhojpur',
+    'Buxar', 'Darbhanga', 'East Champaran', 'Gaya', 'Gopalganj', 'Jamui', 'Jehanabad',
+    'Kaimur', 'Katihar', 'Khagaria', 'Kishanganj', 'Lakhisarai', 'Madhepura',
+    'Madhubani', 'Munger', 'Muzaffarpur', 'Nalanda', 'Nawada', 'Patna', 'Purnia',
+    'Rohtas', 'Saharsa', 'Samastipur', 'Saran', 'Sheikhpura', 'Sheohar',
+    'Sitamarhi', 'Siwan', 'Supaul', 'Vaishali', 'West Champaran',
+  ],
+  'Madhya Pradesh': [
+    'Bhopal', 'Gwalior', 'Indore', 'Jabalpur', 'Ujjain', 'Sagar', 'Rewa',
+    'Satna', 'Ratlam', 'Chhindwara', 'Balaghat', 'Betul', 'Dewas', 'Dhar',
+    'Hoshangabad', 'Khandwa', 'Khargone', 'Mandsaur', 'Morena', 'Sehore',
+    'Shivpuri', 'Singrauli', 'Vidisha',
+  ],
+  'Punjab': [
+    'Amritsar', 'Barnala', 'Bathinda', 'Faridkot', 'Fatehgarh Sahib',
+    'Fazilka', 'Ferozepur', 'Gurdaspur', 'Hoshiarpur', 'Jalandhar',
+    'Kapurthala', 'Ludhiana', 'Mansa', 'Moga', 'Muktsar', 'Pathankot',
+    'Patiala', 'Rupnagar', 'Sahibzada Ajit Singh Nagar', 'Sangrur',
+    'Shahid Bhagat Singh Nagar', 'Sri Muktsar Sahib', 'Tarn Taran',
+  ],
+  'Haryana': [
+    'Ambala', 'Bhiwani', 'Charkhi Dadri', 'Faridabad', 'Fatehabad', 'Gurugram',
+    'Hisar', 'Jhajjar', 'Jind', 'Kaithal', 'Karnal', 'Kurukshetra', 'Mahendragarh',
+    'Nuh', 'Palwal', 'Panchkula', 'Panipat', 'Rewari', 'Rohtak', 'Sirsa',
+    'Sonipat', 'Yamunanagar',
+  ],
+  'Odisha': [
+    'Angul', 'Balangir', 'Balasore', 'Bargarh', 'Bhadrak', 'Boudh', 'Cuttack',
+    'Deogarh', 'Dhenkanal', 'Gajapati', 'Ganjam', 'Jagatsinghpur', 'Jajpur',
+    'Jharsuguda', 'Kalahandi', 'Kandhamal', 'Kendrapara', 'Kendujhar', 'Khordha',
+    'Koraput', 'Malkangiri', 'Mayurbhanj', 'Nabarangpur', 'Nayagarh', 'Nuapada',
+    'Puri', 'Rayagada', 'Sambalpur', 'Subarnapur', 'Sundargarh',
+  ],
+  'Assam': [
+    'Baksa', 'Barpeta', 'Biswanath', 'Bongaigaon', 'Cachar', 'Charaideo',
+    'Chirang', 'Darrang', 'Dhemaji', 'Dhubri', 'Dibrugarh', 'Dima Hasao',
+    'Goalpara', 'Golaghat', 'Hailakandi', 'Hojai', 'Jorhat', 'Kamrup',
+    'Kamrup Metropolitan', 'Karbi Anglong', 'Karimganj', 'Kokrajhar', 'Lakhimpur',
+    'Majuli', 'Morigaon', 'Nagaon', 'Nalbari', 'Sivasagar', 'Sonitpur',
+    'South Salmara-Mankachar', 'Tinsukia', 'Udalguri', 'West Karbi Anglong',
+  ],
+  'Himachal Pradesh': [
+    'Bilaspur', 'Chamba', 'Hamirpur', 'Kangra', 'Kinnaur', 'Kullu',
+    'Lahaul and Spiti', 'Mandi', 'Shimla', 'Sirmaur', 'Solan', 'Una',
+  ],
+  'Uttarakhand': [
+    'Almora', 'Bageshwar', 'Chamoli', 'Champawat', 'Dehradun', 'Haridwar',
+    'Nainital', 'Pauri Garhwal', 'Pithoragarh', 'Rudraprayag', 'Tehri Garhwal',
+    'Udham Singh Nagar', 'Uttarkashi',
+  ],
+  'Jharkhand': [
+    'Bokaro', 'Chatra', 'Deoghar', 'Dhanbad', 'Dumka', 'East Singhbhum',
+    'Garhwa', 'Giridih', 'Godda', 'Gumla', 'Hazaribagh', 'Jamtara', 'Khunti',
+    'Koderma', 'Latehar', 'Lohardaga', 'Pakur', 'Palamu', 'Ramgarh', 'Ranchi',
+    'Sahibganj', 'Seraikela Kharsawan', 'Simdega', 'West Singhbhum',
+  ],
+  'Chhattisgarh': [
+    'Balod', 'Baloda Bazar', 'Balrampur', 'Bastar', 'Bemetara', 'Bijapur',
+    'Bilaspur', 'Dantewada', 'Dhamtari', 'Durg', 'Gariaband', 'Gaurela-Pendra-Marwahi',
+    'Janjgir-Champa', 'Jashpur', 'Kabirdham', 'Kanker', 'Kondagaon', 'Korba',
+    'Koriya', 'Mahasamund', 'Mungeli', 'Narayanpur', 'Raigarh', 'Raipur',
+    'Rajnandgaon', 'Sukma', 'Surajpur', 'Surguja',
+  ],
+  'Goa': ['North Goa', 'South Goa'],
+  'Chandigarh': ['Chandigarh'],
+  'Andaman and Nicobar Islands': ['Nicobar', 'North and Middle Andaman', 'South Andaman'],
+  'Dadra and Nagar Haveli and Daman and Diu': ['Dadra and Nagar Haveli', 'Daman', 'Diu'],
+  'Jammu and Kashmir': [
+    'Anantnag', 'Bandipora', 'Baramulla', 'Budgam', 'Doda', 'Ganderbal',
+    'Jammu', 'Kathua', 'Kishtwar', 'Kulgam', 'Kupwara', 'Poonch', 'Pulwama',
+    'Rajouri', 'Ramban', 'Reasi', 'Samba', 'Shopian', 'Srinagar', 'Udhampur',
+  ],
+  'Ladakh': ['Kargil', 'Leh'],
+  'Lakshadweep': ['Lakshadweep'],
+  'Manipur': [
+    'Bishnupur', 'Chandel', 'Churachandpur', 'Imphal East', 'Imphal West',
+    'Jiribam', 'Kakching', 'Kamjong', 'Kangpokpi', 'Noney', 'Pherzawl',
+    'Senapati', 'Tamenglong', 'Tengnoupal', 'Thoubal', 'Ukhrul',
+  ],
+  'Meghalaya': [
+    'East Garo Hills', 'East Jaintia Hills', 'East Khasi Hills',
+    'North Garo Hills', 'Ri Bhoi', 'South Garo Hills', 'South West Garo Hills',
+    'South West Khasi Hills', 'West Garo Hills', 'West Jaintia Hills', 'West Khasi Hills',
+  ],
+  'Mizoram': [
+    'Aizawl', 'Champhai', 'Hnahthial', 'Khawzawl', 'Kolasib', 'Lawngtlai',
+    'Lunglei', 'Mamit', 'Saiha', 'Saitual', 'Serchhip',
+  ],
+  'Nagaland': [
+    'Chumoukedima', 'Dimapur', 'Kiphire', 'Kohima', 'Longleng', 'Mokokchung',
+    'Mon', 'Niuland', 'Noklak', 'Peren', 'Phek', 'Shamator', 'Tseminyu',
+    'Tuensang', 'Wokha', 'Zunheboto',
+  ],
+  'Sikkim': ['Gangtok', 'Gyalshing', 'Pakyong', 'Namchi', 'Mangan', 'Soreng'],
+  'Tripura': [
+    'Dhalai', 'Gomati', 'Khowai', 'North Tripura', 'Sepahijala', 'South Tripura',
+    'Unakoti', 'West Tripura',
+  ],
+  'Arunachal Pradesh': [
+    'Anjaw', 'Changlang', 'Dibang Valley', 'East Kameng', 'East Siang',
+    'Kamle', 'Kra Daadi', 'Kurung Kumey', 'Lepa Rada', 'Lohit', 'Longding',
+    'Lower Dibang Valley', 'Lower Siang', 'Lower Subansiri', 'Namsai',
+    'Pakke Kessang', 'Papum Pare', 'Shi Yomi', 'Siang', 'Tawang',
+    'Tirap', 'Upper Siang', 'Upper Subansiri', 'West Kameng', 'West Siang',
+  ],
+};
+
 const indianStatesAndTerritories = [
   'Andaman and Nicobar Islands', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam',
   'Bihar', 'Chandigarh', 'Chhattisgarh', 'Dadra and Nagar Haveli and Daman and Diu',
@@ -46,6 +238,7 @@ const indianStatesAndTerritories = [
   'Puducherry', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana',
   'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
 ];
+
 const communities = ['OC', 'BC', 'BC(M)', 'MBC & DNC', 'SC', 'SC(A)', 'ST', 'SCC'];
 const requiredMarks = ['mathematics', 'physicsMarks', 'chemistryMarks'];
 const markLabels = {
@@ -53,6 +246,17 @@ const markLabels = {
   physicsMarks: 'Physics',
   chemistryMarks: 'Chemistry',
 };
+
+const hscGroupOptions = [
+  'Computer Science (Maths, Physics, Chemistry, Computer Science)',
+  'Biology (Maths, Physics, Chemistry, Biology)',
+  'Pure Science (Physics, Chemistry, Botany, Zoology)',
+  'Commerce with Mathematics (Commerce, Accountancy, Economics, Business Maths)',
+  'Commerce with Computer Applications (Commerce, Accountancy, Economics, Computer Applications)',
+  'Arts / Humanities',
+  'Vocational Stream',
+  'Others',
+];
 
 function getIndianMobileError(value) {
   return /^[6-9]\d{9}$/.test(value) ? '' : 'Enter a valid 10-digit Indian mobile number starting with 6–9.';
@@ -92,6 +296,8 @@ export default function RegisterPage() {
   const [emisStatus, setEmisStatus] = useState('idle');
   const [emisMessage, setEmisMessage] = useState('');
   const [isFetchingEmis, setIsFetchingEmis] = useState(false);
+  const [previewDocModal, setPreviewDocModal] = useState(null);
+
   const [formData, setFormData] = useState(() => ({
     ...draft,
     signature: null,
@@ -113,6 +319,10 @@ export default function RegisterPage() {
     documents: draft?.documents || {},
     fees: draft?.fees || {},
     accommodation: draft?.accommodation || '',
+    transportRequired: draft?.transportRequired || (draft?.transportApplication === 'Yes' ? 'Yes' : (draft?.accommodation === 'Day Scholar' ? 'Yes' : (draft?.accommodation === 'Hostel' ? 'No' : ''))),
+    pickupPoint: draft?.pickupPoint || draft?.busRoute || '',
+    hscGroup: draft?.hscGroup || '',
+    bloodGroupOther: draft?.bloodGroupOther || '',
     studentSignature: draft?.studentSignature || draft?.signature || null,
     parentSignature: draft?.parentSignature || null,
   }));
@@ -123,6 +333,7 @@ export default function RegisterPage() {
     physics: formData.physicsMarks,
     chemistry: formData.chemistryMarks,
   }), [formData.mathematics, formData.physicsMarks, formData.chemistryMarks]);
+
   const completedStepCount = useMemo(() => {
     const isValidMark = (value) => (
       value !== '' && value !== null && value !== undefined
@@ -131,6 +342,7 @@ export default function RegisterPage() {
     const isValidHscMark = formData.hscMarks !== '' && formData.hscMarks !== null
       && formData.hscMarks !== undefined && Number.isFinite(Number(formData.hscMarks))
       && Number(formData.hscMarks) >= 0 && Number(formData.hscMarks) <= 600;
+
     const stepsComplete = [
       Boolean(formData.admissionCategory),
       Boolean(formData.programme && formData.degree
@@ -138,11 +350,12 @@ export default function RegisterPage() {
       ['Yes', 'No'].includes(formData.firstGraduate),
       Boolean(
         ['studentName', 'dateOfBirth', 'gender', 'aadhaar', 'bloodGroup', 'community', 'category',
-          'studentMobile', 'email', 'communicationAddress', 'district', 'state', 'pinCode']
+          'studentMobile', 'communicationAddress', 'district', 'state', 'pinCode']
           .every((field) => String(formData[field] || '').trim())
+        && (formData.bloodGroup !== 'Others' || String(formData.bloodGroupOther || '').trim())
         && formData.dateOfBirth <= todayDate
         && !getIndianMobileError(formData.studentMobile)
-        && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(formData.email || '').trim())
+        && (!formData.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(formData.email || '').trim()))
         && /^\d{12}$/.test(formData.aadhaar.replace(/\s/g, ''))
         && /^\d{6}$/.test(formData.pinCode),
       ),
@@ -153,10 +366,14 @@ export default function RegisterPage() {
         && !getIndianMobileError(formData.motherMobile)
         && (!formData.guardianMobile || !getIndianMobileError(formData.guardianMobile)),
       ),
-      Boolean(formData.accommodation
-        && (formData.accommodation !== 'Day Scholar' || String(formData.busRoute || '').trim())),
       Boolean(
-        String(formData.schoolName || '').trim()
+        formData.transportRequired
+        && (formData.transportRequired === 'No' || String(formData.pickupPoint || formData.busRoute || '').trim())
+        && formData.accommodation
+      ),
+      Boolean(
+        formData.hscGroup
+        && String(formData.schoolName || '').trim()
         && String(formData.schoolAddress || '').trim()
         && isValidHscMark
         && requiredMarks.every((field) => isValidMark(formData[field])),
@@ -205,6 +422,44 @@ export default function RegisterPage() {
     setErrors((previous) => ({ ...previous, degree: '', firstPreference: '' }));
   };
 
+  const handleDocumentFile = (docKey, file) => {
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      window.alert('File size must be 10 MB or smaller.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const fileData = {
+        name: file.name,
+        size: file.size,
+        mimeType: file.type || 'application/octet-stream',
+        dataUrl: String(reader.result),
+      };
+      setFormData((previous) => ({
+        ...previous,
+        documents: {
+          ...(previous.documents || {}),
+          [docKey]: fileData,
+          ...(docKey === 'CommunityCertificate' ? { CC: fileData } : {}),
+        },
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveDocument = (docKey) => {
+    setFormData((previous) => {
+      const nextDocs = { ...(previous.documents || {}) };
+      delete nextDocs[docKey];
+      if (docKey === 'CommunityCertificate') delete nextDocs.CC;
+      return {
+        ...previous,
+        documents: nextDocs,
+      };
+    });
+  };
+
   const validateStep = () => {
     const nextErrors = {};
 
@@ -235,12 +490,17 @@ export default function RegisterPage() {
         'category',
         'studentMobile',
         'communicationAddress',
-        'district',
         'state',
+        'district',
         'pinCode',
       ].forEach((field) => {
         if (!String(formData[field] || '').trim()) nextErrors[field] = 'This field is required.';
       });
+
+      if (formData.bloodGroup === 'Others' && !String(formData.bloodGroupOther || '').trim()) {
+        nextErrors.bloodGroupOther = 'Please specify your blood group.';
+      }
+
       if (formData.dateOfBirth && new Date(`${formData.dateOfBirth}T00:00:00`) > new Date()) {
         nextErrors.dateOfBirth = 'Date of birth cannot be in the future.';
       }
@@ -248,9 +508,7 @@ export default function RegisterPage() {
         const mobileError = getIndianMobileError(formData.studentMobile);
         if (mobileError) nextErrors.studentMobile = mobileError;
       }
-      if (!String(formData.email || '').trim()) {
-        nextErrors.email = 'Email ID is required.';
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(formData.email || '').trim())) {
+      if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(formData.email || '').trim())) {
         nextErrors.email = 'Enter a valid email address.';
       }
       if (formData.aadhaar && !/^\d{12}$/.test(formData.aadhaar.replace(/\s/g, ''))) {
@@ -277,13 +535,22 @@ export default function RegisterPage() {
       }
     }
 
-    if (currentStep === 6 && !formData.accommodation) {
-      nextErrors.accommodation = 'Choose Hostel or Day Scholar.';
+    if (currentStep === 6) {
+      if (!formData.transportRequired) {
+        nextErrors.transportRequired = 'Please select Yes or No for Transport Requirement.';
+      }
+      if (formData.transportRequired === 'Yes' && !String(formData.pickupPoint || formData.busRoute || '').trim()) {
+        nextErrors.pickupPoint = 'Pickup point is required when transport is needed.';
+      }
+      if (!formData.accommodation) {
+        nextErrors.accommodation = 'Choose Hostel or Day Scholar.';
+      }
     }
-    if (currentStep === 6 && formData.accommodation === 'Day Scholar' && !String(formData.busRoute || '').trim()) {
-      nextErrors.busRoute = 'Bus route is required for Day Scholars.';
-    }
+
     if (currentStep === 7) {
+      if (!formData.hscGroup) {
+        nextErrors.hscGroup = 'Please select 12th standard group.';
+      }
       if (!String(formData.schoolName || '').trim()) nextErrors.schoolName = 'School name is required.';
       if (!String(formData.schoolAddress || '').trim()) nextErrors.schoolAddress = 'School address is required.';
       if (formData.hscMarks === '' || formData.hscMarks === null || formData.hscMarks === undefined) {
@@ -360,8 +627,8 @@ export default function RegisterPage() {
           community: record.community,
           bloodGroup: record.bloodGroup,
           communicationAddress: record.communicationAddress,
+          state: record.state || 'Tamil Nadu',
           district: record.district,
-          state: record.state,
           pinCode: record.pinCode,
           schoolName: record.schoolName,
           schoolAddress: record.schoolAddress,
@@ -461,33 +728,24 @@ export default function RegisterPage() {
         </fieldset>
       ) : null}
 
-      {formData.degree ? (
-        <div className="field-group full-width">
-          <label>Course {availableCourses.length ? <span className="required-indicator">*</span> : null}</label>
-          {availableCourses.length ? (
-            <>
-              <div className="choice-grid">
-                {availableCourses.map((course) => (
-                  <button
-                    key={course}
-                    type="button"
-                    className={`choice-card ${formData.coursePreference.firstPreference === course ? 'active' : ''}`}
-                    aria-pressed={formData.coursePreference.firstPreference === course}
-                    onClick={() => updateCoursePreference(course)}
-                  >
-                    {course}
-                  </button>
-                ))}
-              </div>
-              {errors.firstPreference ? <small className="error-text">{errors.firstPreference}</small> : null}
-            </>
-          ) : (
-            <div className="notice-box">
-              Approved courses for {formData.degree} have not been configured. Ask the college to add its approved course list in
-              {' '}<code>PROGRAMME_COURSES</code> in <code>src/utils/helpers.js</code>. No course has been assumed.
-            </div>
-          )}
-        </div>
+      {formData.degree && availableCourses.length ? (
+        <fieldset className="field-group choice-fieldset full-width">
+          <legend>Course selection <span className="required-indicator">*</span></legend>
+          <div className="choice-grid">
+            {availableCourses.map((course) => (
+              <button
+                key={course}
+                type="button"
+                className={`choice-card ${formData.coursePreference?.firstPreference === course ? 'active' : ''}`}
+                aria-pressed={formData.coursePreference?.firstPreference === course}
+                onClick={() => updateCoursePreference(course)}
+              >
+                {course}
+              </button>
+            ))}
+          </div>
+          {errors.firstPreference ? <small className="error-text">{errors.firstPreference}</small> : null}
+        </fieldset>
       ) : null}
     </div>
   );
@@ -495,7 +753,7 @@ export default function RegisterPage() {
   const renderFirstGraduateStep = () => (
     <div className="form-grid">
       <fieldset className="field-group choice-fieldset">
-        <legend>Are you a First Graduate? <span className="required-indicator">*</span></legend>
+        <legend>First Graduate (FG) <span className="required-indicator">*</span></legend>
         <div className="choice-grid two-choice-grid">
           {['Yes', 'No'].map((answer) => (
             <button
@@ -513,6 +771,11 @@ export default function RegisterPage() {
       </fieldset>
     </div>
   );
+
+  const currentDistricts = useMemo(() => {
+    if (!formData.state) return [];
+    return stateDistrictsMap[formData.state] || [];
+  }, [formData.state]);
 
   const renderPersonalStep = () => (
     <div className="form-grid two-column">
@@ -542,8 +805,7 @@ export default function RegisterPage() {
           <option value="">Select gender</option>
           <option value="Male">Male</option>
           <option value="Female">Female</option>
-          <option value="Transgender">Transgender</option>
-          <option value="Prefer not to say">Prefer not to say</option>
+          <option value="Other">Other</option>
         </select>
         {errors.gender ? <small className="error-text">{errors.gender}</small> : null}
       </div>
@@ -554,12 +816,37 @@ export default function RegisterPage() {
       </div>
       <div className="field-group">
         <label htmlFor="bloodGroup">Blood Group <span className="required-indicator">*</span></label>
-        <select id="bloodGroup" required value={formData.bloodGroup || ''} onChange={(event) => updateField('bloodGroup', event.target.value)}>
+        <select
+          id="bloodGroup"
+          required
+          value={formData.bloodGroup || ''}
+          onChange={(event) => {
+            const nextVal = event.target.value;
+            updateField('bloodGroup', nextVal);
+            if (nextVal !== 'Others') {
+              updateField('bloodGroupOther', '');
+            }
+          }}
+        >
           <option value="">Select blood group</option>
-          {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((group) => <option key={group}>{group}</option>)}
+          {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Others'].map((group) => <option key={group} value={group}>{group}</option>)}
         </select>
         {errors.bloodGroup ? <small className="error-text">{errors.bloodGroup}</small> : null}
       </div>
+      {formData.bloodGroup === 'Others' ? (
+        <div className="field-group">
+          <label htmlFor="bloodGroupOther">Specify Blood Group <span className="required-indicator">*</span></label>
+          <input
+            id="bloodGroupOther"
+            type="text"
+            required
+            placeholder="Type your blood group"
+            value={formData.bloodGroupOther || ''}
+            onChange={(event) => updateField('bloodGroupOther', event.target.value)}
+          />
+          {errors.bloodGroupOther ? <small className="error-text">{errors.bloodGroupOther}</small> : null}
+        </div>
+      ) : null}
       <div className="field-group">
         <label htmlFor="community">Community <span className="required-indicator">*</span></label>
         <select id="community" required value={formData.community || ''} onChange={(event) => updateField('community', event.target.value)}>
@@ -589,11 +876,10 @@ export default function RegisterPage() {
         {errors.studentMobile ? <small className="error-text">{errors.studentMobile}</small> : null}
       </div>
       <div className="field-group">
-        <label htmlFor="email">Email ID <span className="required-indicator">*</span></label>
+        <label htmlFor="email">Email ID (optional)</label>
         <input
           id="email"
           type="email"
-          required
           autoComplete="email"
           placeholder="student@example.com"
           value={formData.email || ''}
@@ -607,20 +893,42 @@ export default function RegisterPage() {
         {errors.communicationAddress ? <small className="error-text">{errors.communicationAddress}</small> : null}
       </div>
       <div className="field-group">
-        <label htmlFor="district">District <span className="required-indicator">*</span></label>
-        <select id="district" required value={formData.district || ''} onChange={(event) => updateField('district', event.target.value)}>
-          <option value="">Choose district</option>
-          {tamilNaduDistricts.map((district) => <option key={district} value={district}>{district}</option>)}
-        </select>
-        {errors.district ? <small className="error-text">{errors.district}</small> : null}
-      </div>
-      <div className="field-group">
         <label htmlFor="state">State <span className="required-indicator">*</span></label>
-        <select id="state" required value={formData.state || ''} onChange={(event) => updateField('state', event.target.value)}>
+        <select
+          id="state"
+          required
+          value={formData.state || ''}
+          onChange={(event) => {
+            const nextState = event.target.value;
+            setFormData((prev) => ({ ...prev, state: nextState, district: '' }));
+            setErrors((prev) => ({ ...prev, state: '', district: '' }));
+          }}
+        >
           <option value="">Choose state / UT</option>
           {indianStatesAndTerritories.map((state) => <option key={state} value={state}>{state}</option>)}
         </select>
         {errors.state ? <small className="error-text">{errors.state}</small> : null}
+      </div>
+      <div className="field-group">
+        <label htmlFor="district">District <span className="required-indicator">*</span></label>
+        <select
+          id="district"
+          required
+          disabled={!formData.state}
+          value={formData.district || ''}
+          onChange={(event) => updateField('district', event.target.value)}
+        >
+          {!formData.state ? (
+            <option value="">Select state first</option>
+          ) : (
+            <>
+              <option value="">Choose district</option>
+              {currentDistricts.map((district) => <option key={district} value={district}>{district}</option>)}
+              <option value="Other">Other</option>
+            </>
+          )}
+        </select>
+        {errors.district ? <small className="error-text">{errors.district}</small> : null}
       </div>
       <div className="field-group">
         <label htmlFor="pinCode">PIN Code <span className="required-indicator">*</span></label>
@@ -685,7 +993,52 @@ export default function RegisterPage() {
   const renderAccommodationStep = () => (
     <div className="form-grid">
       <fieldset className="field-group choice-fieldset">
-        <legend>Accommodation <span className="required-indicator">*</span></legend>
+        <legend>Transport Requirement <span className="required-indicator">*</span></legend>
+        <div className="choice-grid two-choice-grid">
+          {['Yes', 'No'].map((option) => (
+            <button
+              key={option}
+              type="button"
+              className={`choice-card ${formData.transportRequired === option ? 'active' : ''}`}
+              aria-pressed={formData.transportRequired === option}
+              onClick={() => {
+                setFormData((previous) => ({
+                  ...previous,
+                  transportRequired: option,
+                  transportApplication: option === 'Yes' ? 'Yes' : 'No',
+                  ...(option === 'No' ? { pickupPoint: '', busRoute: '' } : {}),
+                  ...(option === 'Yes' && !previous.accommodation ? { accommodation: 'Day Scholar' } : {}),
+                }));
+                setErrors((previous) => ({ ...previous, transportRequired: '', pickupPoint: '' }));
+              }}
+            >
+              {option === 'Yes' ? 'Yes (Bus Required)' : 'No (Not Required)'}
+            </button>
+          ))}
+        </div>
+        {errors.transportRequired ? <small className="error-text">{errors.transportRequired}</small> : null}
+      </fieldset>
+
+      {formData.transportRequired === 'Yes' ? (
+        <div className="field-group full-width">
+          <label htmlFor="pickupPoint">Pickup Point <span className="required-indicator">*</span></label>
+          <input
+            id="pickupPoint"
+            type="text"
+            required
+            placeholder="Enter boarding / pickup stage (e.g., Gandhipuram, Hope College)"
+            value={formData.pickupPoint || formData.busRoute || ''}
+            onChange={(event) => {
+              updateField('pickupPoint', event.target.value);
+              updateField('busRoute', event.target.value);
+            }}
+          />
+          {errors.pickupPoint ? <small className="error-text">{errors.pickupPoint}</small> : null}
+        </div>
+      ) : null}
+
+      <fieldset className="field-group choice-fieldset">
+        <legend>Accommodation Type <span className="required-indicator">*</span></legend>
         <div className="choice-grid two-choice-grid">
           {['Hostel', 'Day Scholar'].map((accommodation) => (
             <button
@@ -699,8 +1052,6 @@ export default function RegisterPage() {
                   accommodation,
                   hostelAccommodation: accommodation === 'Hostel' ? 'Yes' : 'No',
                   hostelApplication: accommodation === 'Hostel' ? 'Yes' : 'No',
-                  transportApplication: accommodation === 'Day Scholar' ? 'Yes' : 'No',
-                  ...(accommodation === 'Hostel' ? { busRoute: '', transportRequirements: '' } : {}),
                 }));
                 setErrors((previous) => ({ ...previous, accommodation: '' }));
               }}
@@ -711,24 +1062,27 @@ export default function RegisterPage() {
         </div>
         {errors.accommodation ? <small className="error-text">{errors.accommodation}</small> : null}
       </fieldset>
-      {formData.accommodation === 'Day Scholar' ? (
-        <div className="form-grid two-column">
-          <div className="field-group">
-            <label htmlFor="busRoute">Bus Route <span className="required-indicator">*</span></label>
-            <input id="busRoute" required value={formData.busRoute || ''} onChange={(event) => updateField('busRoute', event.target.value)} />
-            {errors.busRoute ? <small className="error-text">{errors.busRoute}</small> : null}
-          </div>
-          <div className="field-group">
-            <label htmlFor="transportRequirements">Transport Requirements (optional)</label>
-            <input id="transportRequirements" value={formData.transportRequirements || ''} onChange={(event) => updateField('transportRequirements', event.target.value)} />
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 
   const renderEducationStep = () => (
     <div className="form-grid two-column">
+      <div className="field-group full-width">
+        <label htmlFor="hscGroup">12th Standard Group / Stream <span className="required-indicator">*</span></label>
+        <select
+          id="hscGroup"
+          required
+          value={formData.hscGroup || ''}
+          onChange={(event) => updateField('hscGroup', event.target.value)}
+        >
+          <option value="">Select 12th standard group / stream</option>
+          {hscGroupOptions.map((group) => (
+            <option key={group} value={group}>{group}</option>
+          ))}
+        </select>
+        {errors.hscGroup ? <small className="error-text">{errors.hscGroup}</small> : null}
+      </div>
+
       <div className="field-group full-width">
         <label htmlFor="schoolName">School Name <span className="required-indicator">*</span></label>
         <input id="schoolName" required value={formData.schoolName || ''} onChange={(event) => updateField('schoolName', event.target.value)} />
@@ -809,71 +1163,163 @@ export default function RegisterPage() {
   );
 
   const renderDocumentsStep = () => {
-    const allUploadedFiles = [
-      ...Object.values(formData.documents || {}),
-      formData.studentSignature,
-      formData.parentSignature,
-      formData.cashReceipt,
-    ].filter(Boolean);
-
     return (
       <div className="card-list">
-        <h3>Upload documents (optional)</h3>
-        <div className="certificate-upload-grid">
-          {Object.entries(certificateLabels).map(([key, label]) => (
-            <FileUploadField
-              key={key}
-              label={label}
-              imageOnly={key === 'PassportSizePhotographs'}
-              value={formData.documents?.[key] || null}
-              existingFiles={allUploadedFiles}
-              onChange={(file) => setFormData((previous) => ({
-                ...previous,
-                documents: { ...previous.documents, [key]: file },
-              }))}
-            />
-          ))}
+        <h3>Upload Documents (Optional)</h3>
+        <p className="field-help" style={{ marginBottom: '8px' }}>
+          Upload certificates via photo capture or select files. All documents in this table are optional.
+        </p>
+
+        <div className="documents-table-wrapper">
+          <table className="excel-docs-table">
+            <thead>
+              <tr>
+                <th style={{ width: '44px', textAlign: 'center' }}>#</th>
+                <th>Document Name</th>
+                <th style={{ width: '130px', textAlign: 'center' }}>Status</th>
+                <th style={{ minWidth: '220px' }}>Upload</th>
+                <th style={{ width: '90px', textAlign: 'center' }}>View</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(certificateLabels).map(([key, label], index) => {
+                const file = formData.documents?.[key] || (key === 'CommunityCertificate' ? formData.documents?.CC : null);
+                const isUploaded = Boolean(file?.dataUrl);
+
+                return (
+                  <tr key={key}>
+                    <td style={{ textAlign: 'center', fontWeight: 600, color: '#64748b' }}>{index + 1}</td>
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <span style={{ fontWeight: 600, color: '#0f172a' }}>{label}</span>
+                        {file?.name ? (
+                          <small style={{ color: '#006747', fontSize: '0.78rem' }}>{file.name}</small>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td style={{ textAlign: 'center' }} className="status-cell">
+                      {isUploaded ? (
+                        <span className="doc-status-badge uploaded">
+                          <CheckCircle2 size={13} /> Uploaded
+                        </span>
+                      ) : (
+                        <span className="doc-status-badge pending">Not Uploaded</span>
+                      )}
+                    </td>
+                    <td>
+                      <div className="doc-actions">
+                        <label
+                          className="secondary-btn compact signature-tool-btn"
+                          title="Take photo with camera"
+                          style={{ margin: 0, padding: '4px 8px', fontSize: '0.76rem' }}
+                        >
+                          <Camera size={13} /> Take Photo
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            className="visually-hidden"
+                            onChange={(e) => {
+                              handleDocumentFile(key, e.target.files?.[0]);
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+
+                        <label
+                          className="secondary-btn compact signature-tool-btn"
+                          title="Choose image or PDF file"
+                          style={{ margin: 0, padding: '4px 8px', fontSize: '0.76rem' }}
+                        >
+                          <ImagePlus size={13} /> Choose Image
+                          <input
+                            type="file"
+                            accept={key === 'PassportSizePhotographs' ? 'image/*' : 'image/*,application/pdf'}
+                            className="visually-hidden"
+                            onChange={(e) => {
+                              handleDocumentFile(key, e.target.files?.[0]);
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+
+                        {isUploaded ? (
+                          <button
+                            type="button"
+                            className="secondary-btn compact signature-tool-btn danger"
+                            title="Remove document"
+                            style={{ margin: 0, padding: '4px 8px', fontSize: '0.76rem' }}
+                            onClick={() => handleRemoveDocument(key)}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <button
+                        type="button"
+                        className="secondary-btn compact"
+                        disabled={!isUploaded}
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: '0.76rem',
+                          opacity: isUploaded ? 1 : 0.45,
+                          cursor: isUploaded ? 'pointer' : 'not-allowed',
+                        }}
+                        onClick={() => {
+                          if (file) {
+                            setPreviewDocModal({ title: label, file });
+                          }
+                        }}
+                      >
+                        <Eye size={13} /> View
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
 
-        <div className="signature-sections">
-          <section className="signature-section">
-            <h3>Student Signature</h3>
-            <FileUploadField
-              label="Student signature (required)"
-              signature
-              value={formData.studentSignature}
-              existingFiles={allUploadedFiles}
-              onChange={(file) => updateField('studentSignature', file)}
-            />
-            {errors.studentSignature ? <small className="error-text">{errors.studentSignature}</small> : null}
-          </section>
-          <section className="signature-section">
-            <h3>Parent Signature</h3>
-            <FileUploadField
-              label="Parent signature (required)"
-              signature
-              value={formData.parentSignature}
-              existingFiles={allUploadedFiles}
-              onChange={(file) => updateField('parentSignature', file)}
-            />
-            {errors.parentSignature ? <small className="error-text">{errors.parentSignature}</small> : null}
-          </section>
+        <div className="signature-grid">
+          <SignaturePadBox
+            title="Student Signature"
+            required
+            value={formData.studentSignature || formData.signature}
+            onChange={(file) => {
+              updateField('studentSignature', file);
+              updateField('signature', file);
+            }}
+            error={errors.studentSignature}
+          />
+          <SignaturePadBox
+            title="Parent Signature"
+            required
+            value={formData.parentSignature}
+            onChange={(file) => updateField('parentSignature', file)}
+            error={errors.parentSignature}
+          />
         </div>
-        <p className="upload-storage-note">Files are kept in this browser demo only; they are not uploaded to a server. Signature images are for preview and are not identity verification.</p>
 
-      <div className="declaration-panel">
-        <label className="checkbox-row">
-          <input type="checkbox" checked={!!formData.declaration} onChange={(event) => updateField('declaration', event.target.checked)} />
-          Student declaration <span className="required-indicator">*</span>
-        </label>
-        {errors.declaration ? <small className="error-text">{errors.declaration}</small> : null}
-        <label className="checkbox-row">
-          <input type="checkbox" checked={!!formData.parentDeclaration} onChange={(event) => updateField('parentDeclaration', event.target.checked)} />
-          Parent declaration <span className="required-indicator">*</span>
-        </label>
-        {errors.parentDeclaration ? <small className="error-text">{errors.parentDeclaration}</small> : null}
+        <p className="upload-storage-note" style={{ marginTop: '14px' }}>
+          Signatures can be drawn directly with finger/stylus on kiosks and touchscreens, or captured via camera/image upload.
+        </p>
+
+        <div className="declaration-panel">
+          <label className="checkbox-row">
+            <input type="checkbox" checked={!!formData.declaration} onChange={(event) => updateField('declaration', event.target.checked)} />
+            Student declaration <span className="required-indicator">*</span>
+          </label>
+          {errors.declaration ? <small className="error-text">{errors.declaration}</small> : null}
+          <label className="checkbox-row">
+            <input type="checkbox" checked={!!formData.parentDeclaration} onChange={(event) => updateField('parentDeclaration', event.target.checked)} />
+            Parent declaration <span className="required-indicator">*</span>
+          </label>
+          {errors.parentDeclaration ? <small className="error-text">{errors.parentDeclaration}</small> : null}
+        </div>
       </div>
-    </div>
     );
   };
 
@@ -934,10 +1380,10 @@ export default function RegisterPage() {
       <section className="content-panel form-panel">
         <div className="section-header space-between">
           <div>
-              <p className="eyebrow accent">
-                <span className="admissions-portal-label">Admissions Portal</span>
-                <span className="completion-count">{completedStepCount}/9</span>
-              </p>
+            <p className="eyebrow accent">
+              <span className="admissions-portal-label">Admissions Portal</span>
+              <span className="completion-count">{completedStepCount}/9</span>
+            </p>
             {currentStep !== 1 ? <h2>{steps[currentStep - 1]}</h2> : null}
           </div>
         </div>
@@ -946,7 +1392,7 @@ export default function RegisterPage() {
           <span style={{ width: `${(completedStepCount / steps.length) * 100}%` }} />
         </div>
         {currentStep !== 9 ? (
-          <p className="required-fields-note"><span className="required-indicator">*</span> Required fields. EMIS ID, guardian details, and document uploads are optional; student and parent signatures are required.</p>
+          <p className="required-fields-note"><span className="required-indicator">*</span> Required fields. EMIS ID, Email ID, guardian details, and document uploads are optional; student and parent signatures are required.</p>
         ) : null}
 
         {renderedSteps[currentStep - 1]()}
@@ -971,6 +1417,91 @@ export default function RegisterPage() {
           )}
         </div>
       </section>
+
+      {/* Document View Preview Modal */}
+      {previewDocModal ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={previewDocModal.title}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.75)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+          }}
+          onClick={() => setPreviewDocModal(null)}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '12px',
+              maxWidth: '900px',
+              width: '100%',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 18px',
+                borderBottom: '1px solid #e2e8f0',
+                background: '#f8fafc',
+              }}
+            >
+              <h3 style={{ margin: 0, fontSize: '1rem', color: '#0f172a' }}>
+                {previewDocModal.title} {previewDocModal.file?.name ? `(${previewDocModal.file.name})` : ''}
+              </h3>
+              <button
+                type="button"
+                className="secondary-btn compact"
+                style={{ padding: '4px 8px', borderRadius: '6px' }}
+                onClick={() => setPreviewDocModal(null)}
+                aria-label="Close Preview"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div
+              style={{
+                padding: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflowY: 'auto',
+                minHeight: '260px',
+                maxHeight: 'calc(90vh - 70px)',
+                background: '#f1f5f9',
+              }}
+            >
+              {previewDocModal.file?.dataUrl?.startsWith('data:image/') || previewDocModal.file?.mimeType?.startsWith('image/') ? (
+                <img
+                  src={previewDocModal.file.dataUrl}
+                  alt={previewDocModal.title}
+                  style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: '6px' }}
+                />
+              ) : (
+                <iframe
+                  src={previewDocModal.file?.dataUrl}
+                  title={previewDocModal.title}
+                  style={{ width: '100%', height: '70vh', border: 0, borderRadius: '6px' }}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

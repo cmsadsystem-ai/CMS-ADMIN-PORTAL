@@ -9,7 +9,7 @@ const officeDocuments = [
   ['SSLC', 'SSLC Certificate'],
   ['HSC', 'HSC Certificate'],
   ['TC', 'Transfer Certificate (TC)'],
-  ['CC', 'Conduct Certificate (CC)'],
+  ['CommunityCertificate', 'Community Certificate'],
   ['NativityCertificate', 'Nativity Certificate'],
   ['IncomeCertificate', 'Income Certificate'],
   ['AadhaarCard', 'Aadhaar Document'],
