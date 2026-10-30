@@ -17,3 +17,17 @@ services:
         value: OjnfTM7WmkOa__YcKhVHLr7IAP-w71TsBwAE-e6Oaqk=
       - key: CORS_ORIGINS
         value: "*"
+      - key: DATABASE_URL
+        sync: false
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        value: cmsadsystem@gmail.com
+      - key: SMTP_PASSWORD
+        value: ohhl usqb hwso fjco
+      - key: SMTP_FROM
+        value: cmsadsystem@gmail.com
+      - key: SMTP_TLS
+        value: "true"
