@@ -5,39 +5,90 @@ import { useAppContext } from '../context/AppContext';
 import { calculateCutoff, formatDate } from '../utils/helpers';
 
 function display(value) {
-  return value === null || value === undefined || String(value).trim() === '' ? 'Not provided' : value;
+  return value === null || value === undefined || String(value).trim() === '' ? '—' : value;
 }
 
-function PreviewBlock({ title, rows }) {
+function formatAadhaar(value) {
+  const digits = String(value || '').replace(/\D/g, '').slice(0, 12);
+  return digits ? digits.replace(/(\d{4})(?=\d)/g, '$1 ') : '—';
+}
+
+function PaperOption({ selected, label }) {
   return (
-    <section className="preview-block" style={{ margin: '0 0 8px', padding: 0, border: 0, borderRadius: 0, background: 'transparent' }}>
-      <h3 style={{ margin: '0', padding: '4px 6px', fontSize: '0.9rem', background: '#edf2ef', border: '1px solid #68756f' }}>{title}</h3>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
-        <tbody>
-        {rows.map(([label, value]) => (
-          <tr key={label}>
-            <th style={{ width: '34%', padding: '3px 6px', border: '1px solid #87918c', textAlign: 'left', fontWeight: 500 }}>{label}</th>
-            <td style={{ padding: '3px 6px', border: '1px solid #87918c', overflowWrap: 'anywhere' }}>{display(value)}</td>
-          </tr>
-        ))}
-        </tbody>
-      </table>
-    </section>
+    <span className={`paper-option ${selected ? 'selected' : ''}`}>
+      <span className="paper-checkbox" aria-hidden="true">
+        {selected ? '✓' : ''}
+      </span>
+      <span>{label}</span>
+    </span>
   );
 }
+
+const LEFT_COURSES = [
+  { id: 'aids', label: 'ARTIFICIAL INTELLIGENCE & DATA SCIENCE' },
+  { id: 'cse', label: 'COMPUTER SCIENCE & ENGG' },
+  { id: 'ece', label: 'ELECTRONICS AND COMMUNICATION ENGG' },
+  { id: 'mech', label: 'MECHANICAL ENGG' },
+];
+
+const RIGHT_COURSES = [
+  { id: 'biomed', label: 'BIO - MEDICAL ENGG' },
+  { id: 'cyber', label: 'CSE- CYBER SECURITY' },
+  { id: 'eee', label: 'ELECTRICAL AND ELECTRONICS ENGG' },
+  { id: 'aiml', label: 'ARTIFICIAL INTELLIGENCE & MACHINE LEARNING', subtext: '*Awaiting Anna University approval' },
+];
+
+function isCourseChosen(courseItem, selectedCourse) {
+  if (!selectedCourse) return false;
+  const s = selectedCourse.toLowerCase().trim();
+  const l = courseItem.label.toLowerCase();
+  if (s === l) return true;
+  if (courseItem.id === 'cyber' && s.includes('cyber')) return true;
+  if (courseItem.id === 'aiml' && (s.includes('machine') || s.includes('aiml'))) return true;
+  if (courseItem.id === 'aids' && (s.includes('data') || s.includes('aids'))) return true;
+  if (courseItem.id === 'cse' && s.includes('computer') && !s.includes('cyber')) return true;
+  if (courseItem.id === 'ece' && s.includes('communication')) return true;
+  if (courseItem.id === 'eee' && s.includes('electrical')) return true;
+  if (courseItem.id === 'biomed' && s.includes('bio')) return true;
+  if (courseItem.id === 'mech' && s.includes('mech')) return true;
+  return false;
+}
+
+const feeStructureRows = [
+  { item: 'ADMISSION FEES (one time)', amount: '5000' },
+  { item: 'CONSORTIUM FEES (one time)', amount: '550' },
+  { item: 'RRA AMOUNT – ONE TIME (ANNA UNIVERSITY)', amount: '2500' },
+  { item: 'SPORTS FEES– ONE TIME (ANNA UNIVERSITY) (Four Years)', amount: '625' },
+  { item: 'GROUP INSURANCE – ONE TIME', amount: '100' },
+  { item: 'SYLLABUS FEES ONE TIME (ANNA UNIVERSITY)', amount: '200' },
+  { item: 'NSS FEES (ANNAUNIVERSITY)', amount: '25' },
+  { item: 'LAB COAT', amount: '500' },
+  { item: 'ID CARD', amount: '100' },
+  { item: 'BOOK FEES & EXAM PAPER FEES (IN EVERY SEMESTER)', amount: '—' },
+  { item: 'TUTION FEES – FIRST GRADUATE (OC/BC/BC(M)/MBC & DNC)', amount: 'Category based' },
+  { item: 'TUITION FEES – NON-FIRST GRADUATE (OC/BC/BC(M)/MBC& DNC)', amount: 'Category based' },
+  { item: 'TUITION FEES – SC/SC(A)/ST/SCC', amount: 'Category based' },
+  { item: 'HOSTEL FEES – (OC/BC/BC(M)/MBC& DNC)', amount: 'Category based' },
+  { item: 'HOSTEL FEES – SC/SC(A)/ST/SCC', amount: 'Category based' },
+  { item: 'HOSTEL / TRANSPORT APPLICATION FORM', amount: '50' },
+  { item: 'TRANSPORT FEES (PER YEAR)', amount: '—' },
+];
 
 export default function ApplicationPreviewPage() {
   const navigate = useNavigate();
   const { draft, saveDraft, submitApplication } = useAppContext();
-  const [staffViewName, setStaffViewName] = useState(draft.staffViewName || '');
-  const [staffViewCategory, setStaffViewCategory] = useState(draft.staffViewCategory || '');
+  const [staffViewName, setStaffViewName] = useState(draft?.staffViewName || '');
+  const [staffViewCategory, setStaffViewCategory] = useState(draft?.staffViewCategory || '');
+  const [consultantName, setConsultantName] = useState(draft?.consultantName || '');
+  const [organizationName, setOrganizationName] = useState(draft?.organizationName || '');
   const [selectedFilePreview, setSelectedFilePreview] = useState(null);
-  const cutoff = calculateCutoff({
-    mathematics: draft.mathematics,
-    physics: draft.physicsMarks,
-    chemistry: draft.chemistryMarks,
-  });
   const [staffErrors, setStaffErrors] = useState({});
+
+  const cutoff = calculateCutoff({
+    mathematics: draft?.mathematics,
+    physics: draft?.physicsMarks,
+    chemistry: draft?.chemistryMarks,
+  });
 
   if (!draft || !draft.studentName) {
     return (
@@ -51,17 +102,31 @@ export default function ApplicationPreviewPage() {
     );
   }
 
-  const validateStaffView = () => {
-    const errs = {};
-    if (!String(staffViewName || '').trim()) {
-      errs.name = 'Staff name is mandatory.';
-    }
-    if (!String(staffViewCategory || '').trim()) {
-      errs.category = 'Staff category is mandatory.';
-    }
-    setStaffErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
+  const isGQ = draft.admissionCategory === 'GQ' || draft.admissionCategory === 'Counselling' || draft.admissionCategory === 'Government Quota';
+  const isMQ = draft.admissionCategory === 'MQ' || draft.admissionCategory === 'Management' || draft.admissionCategory === 'Management Quota';
+  const isFGYes = String(draft.firstGraduate).toLowerCase() === 'yes';
+  const isFGNo = String(draft.firstGraduate).toLowerCase() === 'no';
+  const isMale = String(draft.gender).toLowerCase() === 'male';
+  const isFemale = String(draft.gender).toLowerCase() === 'female';
+  const isOther = Boolean(draft.gender && !isMale && !isFemale);
+  const isHostelYes = draft.accommodation === 'Hostel';
+  const isHostelNo = draft.accommodation === 'Day Scholar' || String(draft.transportRequired).toLowerCase() === 'yes';
+
+  const selectedCourse = draft.coursePreference?.firstPreference || '';
+  const studentSig = (draft.studentSignature || draft.signature)?.dataUrl || null;
+  const parentSig = draft.parentSignature?.dataUrl || null;
+  const studentPhoto = draft.documents?.PassportSizePhotographs?.dataUrl || null;
+
+  const docs = draft.documents || {};
+  const docSSLC = docs.SSLC;
+  const docHSC = docs.HSC;
+  const docTC = docs.TC;
+  const docCC = docs.CommunityCertificate || docs.CC;
+  const docNativity = docs.NativityCertificate;
+  const docIncome = docs.IncomeCertificate;
+  const docAadhaar = docs.AadhaarCard;
+  const docFG = docs.FirstGraduateCertificate || docs.FG;
+  const docPhoto = docs.PassportSizePhotographs;
 
   const handleEnquiring = async () => {
     const sName = String(staffViewName || '').trim() || 'Admission Desk';
@@ -71,6 +136,8 @@ export default function ApplicationPreviewPage() {
       status: 'Enquiring',
       staffViewName: sName,
       staffViewCategory: sCat,
+      consultantName,
+      organizationName,
       cutOffMarks: cutoff ?? '',
     });
     navigate(`/application-success?id=${encodeURIComponent(application?.id || '')}`);
@@ -79,177 +146,385 @@ export default function ApplicationPreviewPage() {
   const handleSaveDraft = () => {
     const sName = String(staffViewName || '').trim() || 'Admission Desk';
     const sCat = String(staffViewCategory || '').trim() || 'General';
-    saveDraft({ ...draft, staffViewName: sName, staffViewCategory: sCat, cutOffMarks: cutoff ?? '' });
+    saveDraft({
+      ...draft,
+      staffViewName: sName,
+      staffViewCategory: sCat,
+      consultantName,
+      organizationName,
+      cutOffMarks: cutoff ?? '',
+    });
     window.alert('Application draft saved successfully.');
   };
 
   const handleConfirmSeat = () => {
     const sName = String(staffViewName || '').trim() || 'Admission Desk';
     const sCat = String(staffViewCategory || '').trim() || 'General';
-    saveDraft({ ...draft, staffViewName: sName, staffViewCategory: sCat, cutOffMarks: cutoff ?? '' });
+    saveDraft({
+      ...draft,
+      staffViewName: sName,
+      staffViewCategory: sCat,
+      consultantName,
+      organizationName,
+      cutOffMarks: cutoff ?? '',
+    });
     navigate('/payment');
   };
 
   return (
-    <main className="page-shell preview-shell" style={{ padding: '14px 10px' }}>
-      <style>{`
-        @media print {
-          @page { size: A4 portrait; margin: 8mm; }
-          body, #root { background: #fff !important; }
-          .student-background, .background-audio-control { display: none !important; }
-          .page-shell.preview-shell { min-height: 0 !important; padding: 0 !important; }
-          .application-preview { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: #fff !important; backdrop-filter: none !important; }
-          .application-preview .preview-actions, .application-preview .screen-only { display: none !important; }
-          .application-preview .eyebrow { display: none !important; }
-          .application-preview table, .application-preview section { break-inside: avoid; }
-        }
-      `}</style>
-      <section className="content-panel application-preview" style={{ width: 'min(820px, 100%)', padding: '12px', border: '1px solid rgba(255,255,255,.5)', borderRadius: 0, background: 'rgba(255,255,255,.3)', backdropFilter: 'blur(2px)', boxShadow: 'none' }}>
-        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', paddingBottom: '8px', marginBottom: '8px', borderBottom: '2px solid #35443c' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-            <img src="/cms-logo.png" alt="CMS College of Engineering logo" className="brand-logo small" style={{ width: '38px', height: '38px' }} />
+    <main className="page-shell preview-shell" style={{ padding: '16px 10px' }}>
+      <div className="cms-paper-wrapper">
+        <article className="cms-paper-form">
+          {/* Header matching authentic Reference Images 1 & 2 */}
+          <header className="cms-paper-header">
+            <div className="cms-branding-top">
+              <div className="cms-branding-left">
+                <img src="/cms-logo.png" alt="CMS College of Engineering Logo" className="cms-header-logo" />
+                <div>
+                  <h1 className="cms-college-title">CMS COLLEGE OF ENGINEERING</h1>
+                  <p className="cms-college-motto">Nurturing Minds Through Innovative Education</p>
+                  <p className="cms-college-status">(AUTONOMOUS STATUS AWARDED BY UGC, New Delhi)</p>
+                  <p className="cms-college-address">CMS Nagar, Ernapuram post, Near Collectorate, Namakkal - 637 003</p>
+                  <p className="cms-college-affiliation">(Approved by the AICTE New Delhi and affiliated to Anna University)</p>
+                </div>
+              </div>
+
+              <div className="cms-header-right">
+                <div className="cms-photo-boxes" title="Affix recent passport size photographs">
+                  <div className="cms-photo-box">
+                    {studentPhoto ? <img src={studentPhoto} alt="Student" /> : <span>Affix Photo</span>}
+                  </div>
+                  <div className="cms-photo-box"><span>Affix Photo</span></div>
+                  <div className="cms-photo-box"><span>Affix Photo</span></div>
+                  <div className="cms-photo-box"><span>Affix Photo</span></div>
+                </div>
+                <div className="cms-excellence-badge">
+                  20 YEARS OF<br />EDUCATIONAL EXCELLENCE
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Fields: Editable Consultant Name and Organization Name below college address */}
+            <div className="cms-consultant-strip">
+              <div className="cms-consultant-field">
+                <label htmlFor="preview-consultant">Consultant Name:</label>
+                <input
+                  id="preview-consultant"
+                  type="text"
+                  placeholder="Enter consultant name"
+                  value={consultantName}
+                  onChange={(e) => {
+                    setConsultantName(e.target.value);
+                    saveDraft({ ...draft, consultantName: e.target.value });
+                  }}
+                  className="cms-consultant-input"
+                />
+              </div>
+              <div className="cms-consultant-field">
+                <label htmlFor="preview-org">Organization Name:</label>
+                <input
+                  id="preview-org"
+                  type="text"
+                  placeholder="Enter organization name"
+                  value={organizationName}
+                  onChange={(e) => {
+                    setOrganizationName(e.target.value);
+                    saveDraft({ ...draft, organizationName: e.target.value });
+                  }}
+                  className="cms-consultant-input"
+                />
+              </div>
+            </div>
+          </header>
+
+          {/* Form No, Admission Form Title & Date */}
+          <div className="cms-form-title-bar">
+            <span>Form No: <strong># {draft.formNumber || '1888'}</strong></span>
+            <span className="cms-form-title">ADMISSION FORM</span>
+            <span>Date: <strong>{formatDate(draft.applicationDate || new Date())}</strong></span>
+          </div>
+
+          {/* Personal & Academic Details Table matching Reference Image 2 (wa_img_1.jpeg) */}
+          <table className="cms-paper-table">
+            <tbody>
+              <tr>
+                <th style={{ width: '30%' }}>CATEGORY OF ADMISSION</th>
+                <td style={{ width: '70%' }}>
+                  <PaperOption selected={isGQ} label="GQ (Counselling)" />
+                  <PaperOption selected={isMQ} label="MQ (Management)" />
+                </td>
+              </tr>
+              <tr>
+                <th>FIRST GRADUATE</th>
+                <td>
+                  <PaperOption selected={isFGYes} label="YES" />
+                  <PaperOption selected={isFGNo} label="NO" />
+                </td>
+              </tr>
+              <tr>
+                <th>NAME OF THE STUDENT</th>
+                <td style={{ fontWeight: 700, letterSpacing: '0.5px' }}>
+                  {display(String(draft.studentName || '').toUpperCase())}
+                </td>
+              </tr>
+              <tr>
+                <th>FATHER'S NAME &amp; OCCUPATION</th>
+                <td>
+                  {display(draft.fatherName)} {draft.fatherOccupation ? `& ${draft.fatherOccupation}` : ''}
+                </td>
+              </tr>
+              <tr>
+                <th>MOTHER'S NAME &amp; OCCUPATION</th>
+                <td>
+                  {display(draft.motherName)} {draft.motherOccupation ? `& ${draft.motherOccupation}` : ''}
+                </td>
+              </tr>
+              <tr>
+                <th>DATE OF BIRTH</th>
+                <td>{display(formatDate(draft.dateOfBirth))}</td>
+              </tr>
+              <tr>
+                <th>GENDER</th>
+                <td>
+                  <PaperOption selected={isMale} label="MALE" />
+                  <PaperOption selected={isFemale} label="FEMALE" />
+                  {isOther ? <PaperOption selected={true} label={`OTHER (${draft.gender})`} /> : null}
+                </td>
+              </tr>
+              <tr>
+                <th>AADHAAR NUMBER</th>
+                <td style={{ letterSpacing: '1px' }}>{formatAadhaar(draft.aadhaar)}</td>
+              </tr>
+              <tr>
+                <th>STUDENT'S MOBILE NO</th>
+                <td>{draft.studentMobile ? `+91 ${draft.studentMobile}` : '—'}</td>
+              </tr>
+              <tr>
+                <th>FATHER'S &amp; MOTHER'S MOBILE NO</th>
+                <td>
+                  Father: <strong>{draft.fatherMobile || draft.parentMobile ? `+91 ${draft.fatherMobile || draft.parentMobile}` : '—'}</strong>
+                  &nbsp;&nbsp;|&nbsp;&nbsp;
+                  Mother: <strong>{draft.motherMobile ? `+91 ${draft.motherMobile}` : '—'}</strong>
+                </td>
+              </tr>
+              <tr>
+                <th>COMMUNITY</th>
+                <td>
+                  <strong>{display(draft.community)}</strong> {draft.category ? `(${draft.category})` : ''}
+                </td>
+              </tr>
+              <tr>
+                <th>BLOOD GROUP</th>
+                <td>
+                  <strong>{draft.bloodGroup === 'Others' && draft.bloodGroupOther ? `Others (${draft.bloodGroupOther})` : display(draft.bloodGroup)}</strong>
+                </td>
+              </tr>
+              <tr>
+                <th>HOSTEL ACCOMMODATION</th>
+                <td>
+                  <PaperOption selected={isHostelYes} label="YES" />
+                  <PaperOption selected={isHostelNo} label="NO" />
+                </td>
+              </tr>
+              <tr>
+                <th>BOARDING PLACE – ROUTE</th>
+                <td>
+                  {draft.pickupPoint || draft.busRoute || (isHostelYes ? 'Hosteller (No Route)' : 'Day Scholar')}
+                </td>
+              </tr>
+              <tr>
+                <th>ADDRESS FOR COMMUNICATION</th>
+                <td>
+                  {[draft.communicationAddress, draft.district, draft.state, draft.pinCode ? `PIN: ${draft.pinCode}` : ''].filter(Boolean).join(', ') || '—'}
+                </td>
+              </tr>
+              <tr>
+                <th>NAME OF THE SCHOOL &amp; ADDRESS</th>
+                <td>
+                  {[draft.schoolName, draft.schoolAddress].filter(Boolean).join(', ') || '—'}
+                  {draft.hscGroup ? <span style={{ display: 'block', fontSize: '0.74rem', color: '#475569', marginTop: '2px' }}>Group: {draft.hscGroup}</span> : null}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          {/* Details of Marks Obtained matching Reference Image 2 */}
+          <div className="cms-section-header">DETAILS OF MARKS OBTAINED</div>
+          <table className="cms-paper-table" style={{ textAlign: 'center', marginTop: '-1px' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'center', width: '20%' }}>MATHS</th>
+                <th style={{ textAlign: 'center', width: '25%' }}>PHYSICS (THEORY + PRACTICAL)</th>
+                <th style={{ textAlign: 'center', width: '25%' }}>CHEMISTRY (THEORY + PRACTICAL)</th>
+                <th style={{ textAlign: 'center', width: '15%' }}>CUT-OFF MARKS</th>
+                <th style={{ textAlign: 'center', width: '15%' }}>TOTAL</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={{ fontWeight: 700 }}>{display(draft.mathematics)}</td>
+                <td style={{ fontWeight: 700 }}>{display(draft.physicsMarks)}</td>
+                <td style={{ fontWeight: 700 }}>{display(draft.chemistryMarks)}</td>
+                <td style={{ fontWeight: 700, color: '#006747' }}>{cutoff !== null ? cutoff.toFixed(2) : '—'}</td>
+                <td style={{ fontWeight: 700 }}>{display(draft.hscMarks)}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          {/* Courses (B.E/B.TECH) Preferred matching Reference Image 2 */}
+          <div className="cms-section-header">COURSES (B.E/B.TECH) PREFERRED</div>
+          <div className="cms-courses-grid">
             <div>
-              <p className="eyebrow accent" style={{ margin: 0 }}>CMS College of Engineering</p>
-              <h2 style={{ margin: 0, fontSize: '1.2rem' }}>Admission Application</h2>
+              {LEFT_COURSES.map((course) => {
+                const chosen = isCourseChosen(course, selectedCourse);
+                return (
+                  <div key={course.id} className={`cms-course-item ${chosen ? 'selected' : ''}`}>
+                    <span className="paper-checkbox" aria-hidden="true">{chosen ? '✓' : ''}</span>
+                    <span>{course.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div>
+              {RIGHT_COURSES.map((course) => {
+                const chosen = isCourseChosen(course, selectedCourse);
+                return (
+                  <div key={course.id} className={`cms-course-item ${chosen ? 'selected' : ''}`}>
+                    <span className="paper-checkbox" aria-hidden="true">{chosen ? '✓' : ''}</span>
+                    <div>
+                      <span>{course.label}</span>
+                      {course.subtext ? <span style={{ display: 'block', fontSize: '0.68rem', color: '#64748b' }}>{course.subtext}</span> : null}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-          <strong style={{ fontSize: '0.82rem' }}>Form No: {display(draft.formNumber)}<br />Date: {formatDate(draft.applicationDate)}</strong>
-        </header>
 
-        <div>
-          <PreviewBlock title="Admission and programme" rows={[
-            ['Admission category', draft.admissionCategory],
-            ['Programme', draft.programme],
-            ['Degree', draft.degree],
-            ['Selected course', draft.coursePreference?.firstPreference],
-            ['FG (First Graduate)', draft.firstGraduate],
-          ]} />
-          <PreviewBlock title="Personal information" rows={[
-            ['Full name', draft.studentName],
-            ['Date of birth', formatDate(draft.dateOfBirth)],
-            ['Gender', draft.gender],
-            ['Email ID', draft.email],
-            ['Aadhaar number', String(draft.aadhaar || '').replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ')],
-            ['Blood group', draft.bloodGroup === 'Others' && draft.bloodGroupOther ? `Others (${draft.bloodGroupOther})` : draft.bloodGroup],
-            ['Community', draft.community],
-            ['Category', draft.category],
-            ['Mobile number', draft.studentMobile ? `+91 ${draft.studentMobile}` : ''],
-            ['EMIS ID', draft.emisId],
-            ['State', draft.state],
-            ['District', draft.district],
-            ['PIN code', draft.pinCode],
-            ['Communication address', draft.communicationAddress],
-          ]} />
-          <PreviewBlock title="Parents and guardian details" rows={[
-            ['Father name', draft.fatherName],
-            ['Father occupation', draft.fatherOccupation],
-            ['Father mobile number', (draft.fatherMobile || draft.parentMobile) ? `+91 ${draft.fatherMobile || draft.parentMobile}` : ''],
-            ['Mother name', draft.motherName],
-            ['Mother occupation', draft.motherOccupation],
-            ['Mother mobile number', draft.motherMobile ? `+91 ${draft.motherMobile}` : ''],
-            ['Guardian name', draft.guardianName],
-            ['Guardian occupation', draft.guardianOccupation],
-            ['Guardian mobile number', draft.guardianMobile ? `+91 ${draft.guardianMobile}` : ''],
-          ]} />
-          <PreviewBlock title="School and education" rows={[
-            ['12th standard group', draft.hscGroup],
-            ['School name', draft.schoolName],
-            ['School address', draft.schoolAddress],
-            ['Class 12 / HSC marks', draft.hscMarks],
-            ['Mathematics marks', draft.mathematics],
-            ['Physics marks', draft.physicsMarks],
-            ['Chemistry marks', draft.chemistryMarks],
-            ['Automatically calculated cutoff', cutoff === null ? 'Not calculated — enter valid subject marks' : `${cutoff.toFixed(2)} / 200`],
-          ]} />
-          <PreviewBlock title="Accommodation and declarations" rows={[
-            ['Transport requirement', draft.transportRequired || (draft.transportApplication === 'Yes' ? 'Yes' : (draft.accommodation === 'Day Scholar' ? 'Yes' : 'No'))],
-            ['Pickup point', draft.pickupPoint || draft.busRoute || (draft.transportRequired === 'No' ? 'Not applicable' : '')],
-            ['Accommodation type', draft.accommodation],
-            ['Student declaration', draft.declaration ? 'Accepted' : 'Not accepted'],
-            ['Parent declaration', draft.parentDeclaration ? 'Accepted' : 'Not accepted'],
-            ['Cash payment receipt', draft.cashReceipt?.name ? 'Uploaded' : 'Not uploaded'],
-          ]} />
-        </div>
-
-        <section style={{ margin: '0 0 8px' }}>
-          <h3 style={{ margin: 0, padding: '4px 6px', fontSize: '0.9rem', background: '#edf2ef', border: '1px solid #68756f' }}>Fees Structure</h3>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.74rem' }}>
-            <thead><tr>{['Fee item', 'Amount (₹)', 'Frequency / details'].map((heading) => <th key={heading} style={{ padding: '3px 6px', border: '1px solid #87918c', textAlign: 'left' }}>{heading}</th>)}</tr></thead>
+          {/* Fees Structure matching Reference Image 3 (wa_img_2.jpeg) */}
+          <div className="cms-section-header" style={{ marginTop: '8px' }}>FEES STRUCTURE</div>
+          <table className="cms-fees-table">
+            <thead>
+              <tr style={{ background: '#f8fafc' }}>
+                <th style={{ textAlign: 'left', width: '75%' }}>Particulars</th>
+                <th style={{ textAlign: 'right', width: '25%' }}>Amount (₹)</th>
+              </tr>
+            </thead>
             <tbody>
-              {[
-                ['Admission fees', '5,000', 'One time'],
-                ['Consortium fees', '550', 'One time'],
-                ['RRA amount (Anna University)', '2,500', 'One time'],
-                ['Sports fees (Anna University)', '625', 'One time · Four years'],
-                ['Group insurance', '100', 'One time'],
-                ['Syllabus fees (Anna University)', '200', 'One time'],
-                ['NSS fees (Anna University)', '25', 'Frequency not specified'],
-                ['Lab coat', '500', 'Frequency not specified'],
-                ['ID card', '100', 'Frequency not specified'],
-                ['Book fees & exam paper fees', 'Not specified', 'Every semester'],
-                ['Tuition fees — First Graduate (OC/BC/BC(M)/MBC & DNC)', 'Not specified', 'Category-based'],
-                ['Tuition fees — Non-First Graduate (OC/BC/BC(M)/MBC & DNC)', 'Not specified', 'Category-based'],
-                ['Tuition fees — SC/SC(A)/ST/SCC', 'Not specified', 'Category-based'],
-                ['Hostel fees (OC/BC/BC(M)/MBC & DNC)', 'Not specified', 'Category-based'],
-                ['Hostel fees — SC/SC(A)/ST/SCC', 'Not specified', 'Category-based'],
-                ['Hostel / transport application form', '50', 'Frequency not specified'],
-                ['Transport fees', 'Not specified', 'Per year'],
-              ].map(([item, amount, detail]) => (
-                <tr key={item}>{[item, amount, detail].map((value, index) => <td key={index} style={{ padding: '2px 6px', border: '1px solid #87918c' }}>{value}</td>)}</tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-
-        <section style={{ margin: '0 0 8px' }}>
-          <h3 style={{ margin: 0, padding: '4px 6px', fontSize: '0.9rem', background: '#edf2ef', border: '1px solid #68756f' }}>Documents submitted</h3>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
-            <tbody>
-              {Object.entries({
-                ...(draft.documents || {}),
-                ...(draft.cashReceipt?.dataUrl ? { cashReceipt: draft.cashReceipt } : {}),
-              }).filter(([, file]) => file?.dataUrl).map(([key, file]) => (
-                <tr key={key}>
-                  <th style={{ width: '34%', padding: '3px 6px', border: '1px solid #87918c', textAlign: 'left', fontWeight: 500 }}>
-                    {key === 'cashReceipt' ? 'Cash Bill / Receipt' : (key === 'CC' || key === 'CommunityCertificate' ? 'Community Certificate' : key.replace(/([A-Z])/g, ' $1').trim())}
-                  </th>
-                  <td style={{ padding: '3px 6px', border: '1px solid #87918c' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                      <span>{file.name}</span>
-                      <button
-                        type="button"
-                        className="secondary-btn compact"
-                        style={{ padding: '2px 8px', fontSize: '0.72rem' }}
-                        onClick={() => setSelectedFilePreview({ title: key, file })}
-                      >
-                        <Eye size={12} /> View File
-                      </button>
-                    </div>
-                  </td>
+              {feeStructureRows.map((row) => (
+                <tr key={row.item}>
+                  <td>{row.item}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>{row.amount}</td>
                 </tr>
               ))}
-              {!Object.values(draft.documents || {}).some((file) => file?.dataUrl) && !draft.cashReceipt?.dataUrl ? (
-                <tr><td colSpan="2" style={{ padding: '3px 6px', border: '1px solid #87918c' }}>No optional documents uploaded.</td></tr>
-              ) : null}
             </tbody>
           </table>
-        </section>
 
-        <section style={{ margin: '8px 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px', fontSize: '0.76rem' }}>
-          <div style={{ minHeight: '48px', borderBottom: '1px solid #35443c', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-            {(draft.studentSignature || draft.signature)?.dataUrl ? <img src={(draft.studentSignature || draft.signature).dataUrl} alt="Student signature" style={{ maxWidth: '150px', maxHeight: '36px', objectFit: 'contain', objectPosition: 'left bottom' }} /> : null}
-            <span>Signature of the student</span>
+          {/* Digital Signatures for Student and Parent */}
+          <div className="cms-signatures-row">
+            <div className="cms-signature-block">
+              {studentSig ? (
+                <img src={studentSig} alt="Signature of the Student" className="cms-signature-img" />
+              ) : (
+                <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.72rem' }}>Digital signature recorded</span>
+              )}
+              <span className="cms-signature-label">SIGNATURE OF THE STUDENT</span>
+            </div>
+            <div className="cms-signature-block" style={{ textAlign: 'right', alignItems: 'flex-end' }}>
+              {parentSig ? (
+                <img src={parentSig} alt="Signature of the Parent" className="cms-signature-img" />
+              ) : (
+                <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.72rem' }}>Digital signature recorded</span>
+              )}
+              <span className="cms-signature-label">SIGNATURE OF THE PARENT</span>
+            </div>
           </div>
-          <div style={{ minHeight: '48px', borderBottom: '1px solid #35443c', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-            {draft.parentSignature?.dataUrl ? <img src={draft.parentSignature.dataUrl} alt="Parent signature" style={{ maxWidth: '150px', maxHeight: '36px', objectFit: 'contain', objectPosition: 'left bottom' }} /> : null}
-            <span>Signature of the parent</span>
-          </div>
-        </section>
 
-        <footer style={{ display: 'flex', justifyContent: 'space-between', marginTop: '14px', fontSize: '0.75rem' }}>
-          <strong>ADMISSION OFFICER</strong><strong>VICE-CHAIRMAN</strong>
-        </footer>
-        <section className="staff-view-section screen-only">
+          {/* FOR OFFICE USE ONLY — CERTIFICATES SUBMITTED Table matching Reference Image 3 */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '12px 0 4px', fontWeight: 800, fontSize: '0.76rem' }}>
+            <span>FOR OFFICE USE ONLY</span>
+            <span style={{ textDecoration: 'underline' }}>CERTIFICATES SUBMITTED</span>
+            <span style={{ visibility: 'hidden' }}>OFFSET</span>
+          </div>
+
+          <table className="cms-office-table">
+            <thead>
+              <tr>
+                <th style={{ width: '13%' }}>SUBMITTED TYPE</th>
+                <th>SSLC</th>
+                <th>HSC</th>
+                <th>TC</th>
+                <th>CC</th>
+                <th>NATIVITY CERTIFICATE</th>
+                <th>INCOME CERTIFICATE</th>
+                <th>AADHAAR CARD</th>
+                <th>F.G</th>
+                <th>PHOTO Nos</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th style={{ textAlign: 'left' }}>ORIGINAL</th>
+                <td>{docSSLC ? <span className="cms-cert-submitted">✓</span> : '—'}</td>
+                <td>{docHSC ? <span className="cms-cert-submitted">✓</span> : '—'}</td>
+                <td>{docTC ? <span className="cms-cert-submitted">✓</span> : '—'}</td>
+                <td>{docCC ? <span className="cms-cert-submitted">✓</span> : '—'}</td>
+                <td>{docNativity ? <span className="cms-cert-submitted">✓</span> : '—'}</td>
+                <td>{docIncome ? <span className="cms-cert-submitted">✓</span> : '—'}</td>
+                <td>{docAadhaar ? <span className="cms-cert-submitted">✓</span> : '—'}</td>
+                <td>{docFG ? <span className="cms-cert-submitted">✓</span> : '—'}</td>
+                <td>{docPhoto ? '4' : '—'}</td>
+              </tr>
+              <tr>
+                <th style={{ textAlign: 'left' }}>XEROX</th>
+                <td>{docSSLC ? <span className="cms-cert-submitted">✓</span> : '—'}</td>
+                <td>{docHSC ? <span className="cms-cert-submitted">✓</span> : '—'}</td>
+                <td>{docTC ? <span className="cms-cert-submitted">✓</span> : '—'}</td>
+                <td>{docCC ? <span className="cms-cert-submitted">✓</span> : '—'}</td>
+                <td>{docNativity ? <span className="cms-cert-submitted">✓</span> : '—'}</td>
+                <td>{docIncome ? <span className="cms-cert-submitted">✓</span> : '—'}</td>
+                <td>{docAadhaar ? <span className="cms-cert-submitted">✓</span> : '—'}</td>
+                <td>{docFG ? <span className="cms-cert-submitted">✓</span> : '—'}</td>
+                <td>—</td>
+              </tr>
+            </tbody>
+          </table>
+
+          {/* Interactive Document Preview Buttons in Screen Mode */}
+          <div className="screen-only" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', margin: '6px 0 10px', fontSize: '0.74rem', alignItems: 'center' }}>
+            <span style={{ fontWeight: 600, color: '#475569' }}>Uploaded Certificates:</span>
+            {Object.entries(docs).filter(([, file]) => file?.dataUrl).map(([key, file]) => (
+              <button
+                key={key}
+                type="button"
+                className="secondary-btn compact"
+                style={{ padding: '2px 8px', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                onClick={() => setSelectedFilePreview({ title: key, file })}
+              >
+                <Eye size={12} /> {key === 'CC' || key === 'CommunityCertificate' ? 'Community' : key.replace(/([A-Z])/g, ' $1').trim()}
+              </button>
+            ))}
+            {!Object.values(docs).some((f) => f?.dataUrl) ? <span style={{ color: '#94a3b8' }}>None uploaded yet</span> : null}
+          </div>
+
+          {/* REFERENCE Box matching Reference Image 3 */}
+          <div className="cms-reference-box">
+            <div className="cms-reference-title">REFERENCE</div>
+            <div className="cms-reference-content">
+              <div><strong>Consultant Name:</strong> {consultantName || '—'}</div>
+              <div><strong>Organization Name:</strong> {organizationName || '—'}</div>
+            </div>
+          </div>
+
+          {/* Bottom Authorities Signatures */}
+          <div className="cms-authorities-row">
+            <span>ADMISSION OFFICER</span>
+            <span>VICE-CHAIRMAN</span>
+          </div>
+        </article>
+
+        {/* Staff View Section (Screen Only) */}
+        <section className="staff-view-section screen-only" style={{ marginTop: '16px' }}>
           <h3>Staff view</h3>
           <div className="staff-view-fields">
             <div className="field-group">
@@ -288,17 +563,17 @@ export default function ApplicationPreviewPage() {
             </div>
           </div>
         </section>
-        <p className="upload-storage-note screen-only" style={{ marginTop: '8px' }}>Uploaded files and this application are stored in this browser demo only; they are not sent to a server.</p>
 
-        <div className="form-actions preview-actions screen-only" style={{ marginTop: '10px' }}>
+        {/* Action Buttons (Screen Only) */}
+        <div className="form-actions preview-actions screen-only" style={{ marginTop: '14px' }}>
           <button type="button" className="secondary-btn" onClick={() => navigate('/register?step=9')}>
             <ArrowLeft size={16} /> Previous
           </button>
           <button type="button" className="secondary-btn" onClick={handleSaveDraft}>
-            <Save size={16} /> Save
+            <Save size={16} /> Save Draft
           </button>
           <button type="button" className="secondary-btn" onClick={() => window.print()}>
-            <Printer size={16} /> Print
+            <Printer size={16} /> Print Application
           </button>
           <button type="button" className="secondary-btn" onClick={handleConfirmSeat}>
             <CreditCard size={16} /> Confirm Seat
@@ -307,8 +582,9 @@ export default function ApplicationPreviewPage() {
             <Send size={16} /> Enquiring
           </button>
         </div>
-      </section>
+      </div>
 
+      {/* Modal for viewing uploaded documents */}
       {selectedFilePreview ? (
         <div
           role="dialog"

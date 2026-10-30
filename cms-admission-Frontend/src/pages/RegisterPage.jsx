@@ -323,6 +323,8 @@ export default function RegisterPage() {
     pickupPoint: draft?.pickupPoint || draft?.busRoute || '',
     hscGroup: draft?.hscGroup || '',
     bloodGroupOther: draft?.bloodGroupOther || '',
+    consultantName: draft?.consultantName || '',
+    organizationName: draft?.organizationName || '',
     studentSignature: draft?.studentSignature || draft?.signature || null,
     parentSignature: draft?.parentSignature || null,
   }));
@@ -934,6 +936,26 @@ export default function RegisterPage() {
         <label htmlFor="pinCode">PIN Code <span className="required-indicator">*</span></label>
         <input id="pinCode" type="text" required inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={formData.pinCode || ''} onChange={(event) => updateField('pinCode', event.target.value.replace(/\D/g, '').slice(0, 6))} />
         {errors.pinCode ? <small className="error-text">{errors.pinCode}</small> : null}
+      </div>
+      <div className="field-group">
+        <label htmlFor="consultantName">Consultant Name (optional)</label>
+        <input
+          id="consultantName"
+          type="text"
+          placeholder="Consultant / referral name"
+          value={formData.consultantName || ''}
+          onChange={(event) => updateField('consultantName', event.target.value)}
+        />
+      </div>
+      <div className="field-group">
+        <label htmlFor="organizationName">Organization Name (optional)</label>
+        <input
+          id="organizationName"
+          type="text"
+          placeholder="Organization / consultancy"
+          value={formData.organizationName || ''}
+          onChange={(event) => updateField('organizationName', event.target.value)}
+        />
       </div>
     </div>
   );

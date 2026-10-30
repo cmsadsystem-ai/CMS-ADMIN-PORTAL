@@ -525,9 +525,11 @@
 }
 
 .choice-card.active {
-  background: var(--primary-soft);
-  border-color: rgba(0, 103, 71, 0.18);
-  color: var(--primary-deep);
+  background: rgba(0, 103, 71, 0.12) !important;
+  border: 2px solid #006747 !important;
+  color: #004d38 !important;
+  box-shadow: 0 0 0 3px rgba(0, 103, 71, 0.16) !important;
+  font-weight: 700;
 }
 
 .choice-fieldset {
@@ -1786,6 +1788,467 @@ input[type="number"] {
 }
 .signature-tool-btn.danger:hover {
   background: #fee2e2;
+}
+
+/* Authentic Paper Admission Form Styling */
+.cms-paper-wrapper {
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.cms-paper-form {
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid #64748b;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  padding: 16px 20px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.77rem;
+  line-height: 1.35;
+}
+
+.cms-paper-header {
+  border-bottom: 2px solid #0f172a;
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+}
+
+.cms-branding-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cms-branding-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.cms-header-logo {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+}
+
+.cms-college-title {
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: #004d38;
+  letter-spacing: 0.5px;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.cms-college-motto {
+  font-style: italic;
+  font-size: 0.76rem;
+  color: #475569;
+  margin: 2px 0;
+}
+
+.cms-college-status {
+  font-weight: 700;
+  font-size: 0.73rem;
+  color: #006747;
+  margin: 2px 0;
+}
+
+.cms-college-address {
+  font-size: 0.75rem;
+  color: #1e293b;
+  margin: 2px 0;
+  font-weight: 600;
+}
+
+.cms-college-affiliation {
+  font-size: 0.71rem;
+  color: #475569;
+  font-style: italic;
+  margin: 2px 0;
+}
+
+.cms-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.cms-photo-boxes {
+  display: flex;
+  gap: 3px;
+}
+
+.cms-photo-box {
+  width: 44px;
+  height: 52px;
+  border: 1px dashed #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.58rem;
+  color: #64748b;
+  text-align: center;
+  padding: 2px;
+  background: #f8fafc;
+  overflow: hidden;
+}
+
+.cms-photo-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cms-excellence-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #006747;
+  border: 1.5px solid #006747;
+  border-radius: 4px;
+  padding: 2px 6px;
+  text-align: center;
+  line-height: 1.15;
+  background: rgba(0, 103, 71, 0.05);
+}
+
+.cms-consultant-strip {
+  display: flex;
+  gap: 16px;
+  background: #f8fafc;
+  padding: 6px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  margin-top: 6px;
+}
+
+.cms-consultant-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.cms-consultant-field label {
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  font-size: 0.78rem;
+}
+
+.cms-consultant-input {
+  flex: 1;
+  border: 1px solid #94a3b8;
+  background: #ffffff;
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  border-radius: 4px;
+  color: #0f172a;
+}
+
+.cms-consultant-input:focus {
+  outline: none;
+  border-color: #006747;
+  box-shadow: 0 0 0 2px rgba(0, 103, 71, 0.15);
+}
+
+.cms-form-title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-weight: 700;
+  font-size: 0.82rem;
+  border-bottom: 1.5px solid #0f172a;
+  margin-bottom: 6px;
+}
+
+.cms-form-title {
+  font-size: 0.96rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-decoration: underline;
+}
+
+/* Grid Table */
+.cms-paper-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 8px;
+  border: 1.5px solid #0f172a;
+}
+
+.cms-paper-table th,
+.cms-paper-table td {
+  border: 1px solid #0f172a;
+  padding: 4px 7px;
+  vertical-align: middle;
+}
+
+.cms-paper-table th {
+  background: #f8fafc;
+  font-weight: 700;
+  text-align: left;
+  color: #0f172a;
+  font-size: 0.76rem;
+}
+
+.cms-section-header {
+  background: #e2e8f0;
+  font-weight: 900;
+  text-align: center;
+  letter-spacing: 0.5px;
+  font-size: 0.8rem;
+  padding: 4px 6px;
+  color: #0f172a;
+  border: 1px solid #0f172a;
+  border-top: none;
+}
+
+/* Transparent Selection Highlighting */
+.paper-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  border: 1px solid #94a3b8;
+  background: transparent;
+  color: #334155;
+  font-size: 0.77rem;
+  margin-right: 8px;
+  transition: all 0.15s ease;
+}
+
+.paper-option.selected {
+  background-color: rgba(0, 103, 71, 0.13) !important;
+  border: 1.5px solid #006747 !important;
+  color: #004d38 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 0 0 2px rgba(0, 103, 71, 0.15);
+}
+
+.paper-checkbox {
+  width: 13px;
+  height: 13px;
+  border: 1.5px solid #475569;
+  border-radius: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 900;
+  background: #ffffff;
+}
+
+.paper-option.selected .paper-checkbox {
+  border-color: #006747;
+  background-color: #006747;
+  color: #ffffff;
+}
+
+/* Courses Grid */
+.cms-courses-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1.5px solid #0f172a;
+  border-top: none;
+  padding: 6px 10px;
+  gap: 6px 16px;
+  margin-bottom: 8px;
+}
+
+.cms-course-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 0.74rem;
+  padding: 3px 6px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+}
+
+.cms-course-item.selected {
+  background: rgba(0, 103, 71, 0.13) !important;
+  border: 1.5px solid #006747 !important;
+  font-weight: 700;
+  color: #004d38;
+}
+
+/* Fees Table */
+.cms-fees-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1.5px solid #0f172a;
+  margin-bottom: 8px;
+}
+
+.cms-fees-table th,
+.cms-fees-table td {
+  border: 1px solid #0f172a;
+  padding: 3px 6px;
+  font-size: 0.73rem;
+}
+
+/* Signatures */
+.cms-signatures-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin: 14px 0 10px;
+  padding: 0 10px;
+}
+
+.cms-signature-block {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  border-bottom: 1.5px solid #0f172a;
+  padding-bottom: 4px;
+  min-height: 52px;
+}
+
+.cms-signature-img {
+  max-width: 180px;
+  max-height: 44px;
+  object-fit: contain;
+  object-position: left bottom;
+}
+
+.cms-signature-label {
+  font-weight: 700;
+  font-size: 0.76rem;
+  color: #0f172a;
+  margin-top: 4px;
+}
+
+/* Office Use Certificates Table */
+.cms-office-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1.5px solid #0f172a;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.cms-office-table th,
+.cms-office-table td {
+  border: 1px solid #0f172a;
+  padding: 3px 4px;
+  font-size: 0.71rem;
+}
+
+.cms-office-table th {
+  background: #f8fafc;
+  font-weight: 700;
+}
+
+.cms-cert-submitted {
+  background: rgba(0, 103, 71, 0.12);
+  color: #006747;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+/* Reference Box */
+.cms-reference-box {
+  border: 1.5px solid #0f172a;
+  padding: 6px 8px;
+  margin-bottom: 12px;
+}
+
+.cms-reference-title {
+  font-weight: 800;
+  font-size: 0.78rem;
+  margin-bottom: 4px;
+}
+
+.cms-reference-content {
+  display: flex;
+  gap: 24px;
+  font-size: 0.76rem;
+}
+
+/* Footer Authorities */
+.cms-authorities-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 18px;
+  padding: 0 10px;
+  font-weight: 800;
+  font-size: 0.78rem;
+}
+
+/* Print Rules */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 6mm 8mm;
+  }
+  body, #root {
+    background: #ffffff !important;
+  }
+  .student-background,
+  .background-audio-control,
+  .screen-only,
+  .preview-actions,
+  .staff-view-section {
+    display: none !important;
+  }
+  .page-shell.preview-shell {
+    padding: 0 !important;
+    min-height: 0 !important;
+  }
+  .cms-paper-wrapper {
+    max-width: none !important;
+    width: 100% !important;
+  }
+  .cms-paper-form {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+  .cms-consultant-strip {
+    background: transparent !important;
+    border: none !important;
+    padding: 2px 0 !important;
+  }
+  .cms-consultant-input {
+    border: none !important;
+    border-bottom: 1px solid #0f172a !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    padding: 0 4px !important;
+  }
+  .paper-option.selected {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    background-color: rgba(0, 103, 71, 0.12) !important;
+  }
+  .paper-checkbox {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .paper-option.selected .paper-checkbox {
+    background-color: #006747 !important;
+    color: #ffffff !important;
+  }
+  .cms-course-item.selected {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    background-color: rgba(0, 103, 71, 0.12) !important;
+  }
+  table, tr, td, th {
+    page-break-inside: avoid;
+  }
 }
 
 
