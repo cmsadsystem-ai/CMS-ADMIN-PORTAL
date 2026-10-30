@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: cms-admin-portal
+    name: cms-admin-system
     env: python
     region: singapore
     plan: free
