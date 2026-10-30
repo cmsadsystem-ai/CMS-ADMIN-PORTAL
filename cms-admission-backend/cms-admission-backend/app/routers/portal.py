@@ -162,12 +162,15 @@ def dispatch_status_email(
     import smtplib
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
-    from ..config import settings
+    from ..config import Settings, settings
+
+    # Read latest settings to dynamically capture updated credentials from .env
+    active_settings = Settings()
 
     if not to_email:
         return False, "Recipient email is required"
 
-    if not settings.SMTP_HOST:
+    if not active_settings.SMTP_HOST:
         logger.warning(
             f"SMTP email service is not configured (SMTP_HOST is empty). Skipping email to {to_email} for status '{status}'."
         )
@@ -177,7 +180,7 @@ def dispatch_status_email(
     is_confirmed = norm_status.lower() in ["confirm", "confirmed"]
     student_display = student_name or "Student"
     course_display = course or "Selected Programme"
-    frontend_url = settings.FRONTEND_BASE_URL.rstrip("/")
+    frontend_url = active_settings.FRONTEND_BASE_URL.rstrip("/")
     form_link = f"{frontend_url}/register"
 
     if is_confirmed:
@@ -211,7 +214,7 @@ def dispatch_status_email(
       <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
       <p style="font-size: 12px; color: #6b7280; line-height: 1.5; margin: 0;">
         CMS College of Engineering Admissions Office<br/>
-        Phone: +91 427 244 5566 | Email: {settings.SMTP_FROM}
+        Phone: +91 427 244 5566 | Email: {active_settings.SMTP_FROM}
       </p>
     </div>
   </div>
@@ -253,7 +256,7 @@ def dispatch_status_email(
       <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
       <p style="font-size: 12px; color: #6b7280; line-height: 1.5; margin: 0;">
         CMS College of Engineering Admissions Office<br/>
-        Phone: +91 427 244 5566 | Email: {enquiring_email or settings.SMTP_FROM}
+        Phone: +91 427 244 5566 | Email: {enquiring_email or active_settings.SMTP_FROM}
       </p>
     </div>
   </div>
@@ -262,7 +265,7 @@ def dispatch_status_email(
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
-    msg["From"] = settings.SMTP_FROM
+    msg["From"] = active_settings.SMTP_FROM
     msg["To"] = to_email
     if not is_confirmed and enquiring_email:
         msg["Cc"] = enquiring_email
@@ -270,23 +273,23 @@ def dispatch_status_email(
     msg.attach(MIMEText(body_html, "html"))
 
     try:
-        if settings.SMTP_TLS:
-            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
+        if active_settings.SMTP_TLS:
+            with smtplib.SMTP(active_settings.SMTP_HOST, active_settings.SMTP_PORT, timeout=10) as server:
                 server.starttls()
-                if settings.SMTP_USER and settings.SMTP_PASSWORD:
-                    server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                if active_settings.SMTP_USER and active_settings.SMTP_PASSWORD:
+                    server.login(active_settings.SMTP_USER, active_settings.SMTP_PASSWORD)
                 recipients = [to_email]
                 if not is_confirmed and enquiring_email:
                     recipients.append(enquiring_email)
-                server.sendmail(settings.SMTP_FROM, recipients, msg.as_string())
+                server.sendmail(active_settings.SMTP_FROM, recipients, msg.as_string())
         else:
-            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
-                if settings.SMTP_USER and settings.SMTP_PASSWORD:
-                    server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+            with smtplib.SMTP(active_settings.SMTP_HOST, active_settings.SMTP_PORT, timeout=10) as server:
+                if active_settings.SMTP_USER and active_settings.SMTP_PASSWORD:
+                    server.login(active_settings.SMTP_USER, active_settings.SMTP_PASSWORD)
                 recipients = [to_email]
                 if not is_confirmed and enquiring_email:
                     recipients.append(enquiring_email)
-                server.sendmail(settings.SMTP_FROM, recipients, msg.as_string())
+                server.sendmail(active_settings.SMTP_FROM, recipients, msg.as_string())
         return True, f"Email delivered to {to_email}"
     except Exception as e:
         logger.error(f"Failed to send email to {to_email} via SMTP: {e}")
@@ -472,9 +475,10 @@ class EmailSendRequest(BaseModel):
 
 @router.post("/email/send")
 def send_portal_email(payload: EmailSendRequest):
-    from ..config import settings
+    from ..config import Settings, settings
 
-    if not settings.SMTP_HOST:
+    active_settings = Settings()
+    if not active_settings.SMTP_HOST:
         raise HTTPException(503, "SMTP email service is not configured on the server")
 
     ok, msg = dispatch_status_email(
