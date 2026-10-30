@@ -7,7 +7,7 @@ import { downloadApplicationsCsv } from '../utils/helpers';
 export default function VCDetailPage() {
   const { id } = useParams();
   const { applications } = useAppContext();
-  const application = applications.find((item) => item.id === id && item.status === 'Sent to VC');
+  const application = applications.find((item) => item.id === id && (item.status === 'Sent to VC' || item.status === 'Confirmed' || item.status === 'Confirm'));
 
   if (!application) {
     return (

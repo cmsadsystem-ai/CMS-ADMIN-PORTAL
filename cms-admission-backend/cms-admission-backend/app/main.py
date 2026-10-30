@@ -1,17 +1,24 @@
+import asyncio
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+import socketio
 
 from . import models  # noqa: F401  (registers tables with Base.metadata)
 from .config import settings
 from .database import Base, SessionLocal, engine
+from .realtime import set_main_loop, sio
 from .routers import auth, courses, documents, fees, kiosk, payments, portal, signatures, staff, uploads
 from .seed import run_all_seeds
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    set_main_loop(asyncio.get_running_loop())
     Base.metadata.create_all(bind=engine)  # creates tables in the cloud DB on first run
     db = SessionLocal()
     try:
@@ -21,9 +28,9 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="CMS College of Engineering - Digital Admission System API", version="0.1.0", lifespan=lifespan)
+core_app = FastAPI(title="CMS College of Engineering - Digital Admission System API", version="0.1.0", lifespan=lifespan)
 
-app.add_middleware(
+core_app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_list,
     allow_credentials=True,
@@ -31,23 +38,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router)
-app.include_router(courses.router)
-app.include_router(kiosk.router)
-app.include_router(uploads.router)
-app.include_router(signatures.router)
-app.include_router(payments.router)
-app.include_router(staff.router)
-app.include_router(documents.router)
-app.include_router(fees.router)
-app.include_router(portal.router)
+core_app.include_router(auth.router)
+core_app.include_router(courses.router)
+core_app.include_router(kiosk.router)
+core_app.include_router(uploads.router)
+core_app.include_router(signatures.router)
+core_app.include_router(payments.router)
+core_app.include_router(staff.router)
+core_app.include_router(documents.router)
+core_app.include_router(fees.router)
+core_app.include_router(portal.router)
 
 
-from pathlib import Path
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-
-@app.get("/health", tags=["meta"])
+@core_app.get("/health", tags=["meta"])
 def health():
     return {"status": "ok"}
 
@@ -67,12 +70,15 @@ for candidate in [
 if FRONTEND_DIST:
     assets_dir = FRONTEND_DIST / "assets"
     if assets_dir.exists():
-        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+        core_app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
 
-    @app.get("/{full_path:path}", include_in_schema=False)
+    @core_app.get("/{full_path:path}", include_in_schema=False)
     async def serve_spa(full_path: str):
         if full_path:
             file_path = FRONTEND_DIST / full_path
             if file_path.is_file():
                 return FileResponse(file_path)
         return FileResponse(FRONTEND_DIST / "index.html")
+
+# Wrap core_app with Socket.IO ASGIApp for unified single-port real-time WebSocket + REST
+app = socketio.ASGIApp(sio, other_asgi_app=core_app, socketio_path="socket.io")

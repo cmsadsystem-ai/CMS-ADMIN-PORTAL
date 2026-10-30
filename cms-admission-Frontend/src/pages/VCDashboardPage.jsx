@@ -6,8 +6,8 @@ import { downloadApplicationsCsv, formatDate } from '../utils/helpers';
 
 export default function VCDashboardPage() {
   const navigate = useNavigate();
-  const { applications, auth, logoutDemoUser } = useAppContext();
-  const sentToVC = applications.filter((app) => app.status === 'Sent to VC');
+  const { applications, auth, logoutDemoUser, isLiveConnected } = useAppContext();
+  const sentToVC = applications.filter((app) => app.status === 'Sent to VC' || app.status === 'Confirmed' || app.status === 'Confirm');
   const [searchTerm, setSearchTerm] = useState('');
   const normalizedSearch = searchTerm.trim().toLocaleLowerCase();
   const filteredSentToVC = sentToVC.filter((app) => [
@@ -50,7 +50,28 @@ export default function VCDashboardPage() {
             <p className="eyebrow accent">Chairman&apos;s view</p>
             <h2>{auth.username || 'Vice-Chairman'}</h2>
           </div>
-          <div className="toolbar">
+          <div className="toolbar" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '12px',
+              fontWeight: 600,
+              color: isLiveConnected ? '#15803d' : '#6b7280',
+              backgroundColor: isLiveConnected ? '#dcfce7' : '#f3f4f6',
+              padding: '4px 10px',
+              borderRadius: '999px',
+              border: `1px solid ${isLiveConnected ? '#bbf7d0' : '#e5e7eb'}`
+            }}>
+              <span style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: isLiveConnected ? '#16a34a' : '#9ca3af',
+                boxShadow: isLiveConnected ? '0 0 0 2px rgba(34,197,94,0.3)' : 'none'
+              }}></span>
+              {isLiveConnected ? 'Live Central Sync' : 'Reconnecting...'}
+            </span>
             <button type="button" className="secondary-btn compact" onClick={handleCsvExport}><Download size={16} /> Export Excel/CSV</button>
           </div>
         </header>

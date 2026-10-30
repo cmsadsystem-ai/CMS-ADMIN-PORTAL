@@ -32,12 +32,27 @@ export default function OfficerApplicationDetailPage() {
   const [draftApplication, setDraftApplication] = useState(() => application || {});
   const [note, setNote] = useState('');
 
+  // Synchronize draft when another user updates the record in real-time
+  useEffect(() => {
+    if (application) {
+      setDraftApplication((prev) => ({
+        ...application,
+        ...prev,
+        status: application.status,
+        paymentStatus: application.paymentStatus,
+        version: application.version,
+        confirmedAt: application.confirmedAt,
+        forwardedAt: application.forwardedAt,
+      }));
+    }
+  }, [application]);
+
   if (!application) {
     return (
       <main className="page-shell preview-shell">
         <div className="content-panel empty-panel">
           <h2>Application not found</h2>
-          <p>The requested student record could not be located in local demo storage.</p>
+          <p>The requested student record could not be located in central records.</p>
           <button type="button" className="primary-btn" onClick={() => navigate('/officer/dashboard')}>Back to dashboard</button>
         </div>
       </main>
@@ -46,10 +61,12 @@ export default function OfficerApplicationDetailPage() {
 
   const history = correctionHistory.filter((entry) => entry.applicationId === id);
 
-  const handleSave = () => {
-    updateApplication(id, draftApplication, note, 'Admission Officer');
+  const handleSave = async () => {
+    const res = await updateApplication(id, draftApplication, note, 'Admission Officer');
     setNote('');
-    alert('Changes saved locally and logged in the demo history.');
+    if (!res?.conflict) {
+      alert('Changes saved to central database and synchronized in real time.');
+    }
   };
 
   const saveCurrentChanges = () => {

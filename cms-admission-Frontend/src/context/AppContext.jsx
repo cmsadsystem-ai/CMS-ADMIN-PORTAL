@@ -10,6 +10,7 @@ import {
   saveSettingApi,
   sendApplicationStatusEmail,
 } from '../services/api';
+import { getSocket, subscribeToRealtimeEvents } from '../services/socket';
 
 const AppContext = createContext(null);
 
@@ -17,6 +18,7 @@ export function AppProvider({ children }) {
   const [auth, setAuth] = useState(() => readStorage(STORAGE_KEYS.cmsAuth, { role: null, username: null }));
   const [draft, setDraft] = useState(() => readStorage(STORAGE_KEYS.cmsDraftApplication, getInitialDraft()));
   const [applications, setApplications] = useState(() => readStorage(STORAGE_KEYS.cmsApplications, []));
+  const [isLiveConnected, setIsLiveConnected] = useState(false);
   const [backgroundSettings, setBackgroundSettings] = useState(() => readStorage(STORAGE_KEYS.cmsBackgroundSettings, {
     enabled: true,
     videoDataUrl: '',
@@ -39,37 +41,80 @@ export function AppProvider({ children }) {
   const [correctionHistory, setCorrectionHistory] = useState(() => readStorage(STORAGE_KEYS.cmsCorrectionHistory, []));
   const [lastSubmitted, setLastSubmitted] = useState(() => readStorage(STORAGE_KEYS.cmsLastSubmittedApplication, null));
 
-  // Sync with Backend DB on mount / auth change
+  // 1. Centralized Data System: Fetch latest authoritative state from central backend on mount & auth change
+  const refreshFromDatabase = useCallback(async () => {
+    const serverApps = await fetchApplicationsApi();
+    if (Array.isArray(serverApps)) {
+      setApplications(serverApps);
+    }
+
+    const payVal = await fetchSettingApi('paymentSettings');
+    if (payVal) setPaymentSettings(payVal);
+
+    const bgVal = await fetchSettingApi('backgroundSettings');
+    if (bgVal) setBackgroundSettings(bgVal);
+  }, []);
+
   useEffect(() => {
-    let isMounted = true;
-    fetchApplicationsApi().then((serverApps) => {
-      if (isMounted && serverApps && Array.isArray(serverApps)) {
-        setApplications((localApps) => {
-          // Merge server apps with local apps
-          const serverMap = new Map(serverApps.map((a) => [a.id, a]));
-          const merged = [...serverApps];
-          localApps.forEach((loc) => {
-            if (!serverMap.has(loc.id)) {
-              merged.push(loc);
-              submitApplicationApi(loc);
-            }
-          });
-          return merged;
+    refreshFromDatabase();
+  }, [refreshFromDatabase, auth.role]);
+
+  // 2. Real-Time Multi-User Synchronization via Socket.IO
+  useEffect(() => {
+    getSocket(auth);
+
+    const unsubscribe = subscribeToRealtimeEvents({
+      onConnectionStatus: (connected) => {
+        setIsLiveConnected(connected);
+      },
+      onReconnect: () => {
+        // Automatically reconcile with central DB after internet reconnect
+        console.log('[Socket.IO] Reconnected. Reconciling with central database...');
+        refreshFromDatabase();
+      },
+      onApplicationCreated: (newApp) => {
+        console.log('[Socket.IO] Real-time: Application created:', newApp.id);
+        setApplications((current) => {
+          const exists = current.some((a) => a.id === newApp.id);
+          if (exists) {
+            return current.map((a) => (a.id === newApp.id ? { ...a, ...newApp } : a));
+          }
+          return [newApp, ...current];
         });
-      }
+      },
+      onApplicationUpdated: (updatedApp) => {
+        console.log('[Socket.IO] Real-time: Application updated:', updatedApp.id);
+        setApplications((current) => {
+          const exists = current.some((a) => a.id === updatedApp.id);
+          if (!exists) {
+            return [updatedApp, ...current];
+          }
+          return current.map((a) => (a.id === updatedApp.id ? { ...a, ...updatedApp } : a));
+        });
+        if (Array.isArray(updatedApp.correctionHistory)) {
+          setCorrectionHistory(updatedApp.correctionHistory);
+        }
+      },
+      onApplicationDeleted: ({ id }) => {
+        console.log('[Socket.IO] Real-time: Application deleted:', id);
+        setApplications((current) => current.filter((a) => a.id !== id));
+      },
+      onSettingUpdated: ({ key, value }) => {
+        console.log('[Socket.IO] Real-time: Setting updated:', key);
+        if (key === 'paymentSettings' && value) {
+          setPaymentSettings(value);
+        } else if (key === 'backgroundSettings' && value) {
+          setBackgroundSettings(value);
+        }
+      },
     });
 
-    fetchSettingApi('paymentSettings').then((val) => {
-      if (isMounted && val) setPaymentSettings(val);
-    });
+    return () => {
+      unsubscribe();
+    };
+  }, [auth, refreshFromDatabase]);
 
-    fetchSettingApi('backgroundSettings').then((val) => {
-      if (isMounted && val) setBackgroundSettings(val);
-    });
-
-    return () => { isMounted = false; };
-  }, [auth.role]);
-
+  // Persist local cache for fast offline rendering without overriding central database
   useEffect(() => {
     writeStorage(STORAGE_KEYS.cmsAuth, auth);
   }, [auth]);
@@ -143,7 +188,12 @@ export function AppProvider({ children }) {
     setCorrectionHistory((current) => [entry, ...current]);
   };
 
-  const updateApplication = (applicationId, updates, comment, actor) => {
+  // 3. Concurrency-safe application update with optimistic locking
+  const updateApplication = async (applicationId, updates, comment, actor) => {
+    const currentItem = applications.find((item) => item.id === applicationId);
+    const expectedVersion = currentItem?.version || 1;
+
+    // Optimistically update local state for instantaneous feedback
     setApplications((current) => {
       const next = current.map((item) => {
         if (item.id !== applicationId) return item;
@@ -158,8 +208,15 @@ export function AppProvider({ children }) {
       }
       return next;
     });
-    // Backend commits update to DB first, then automatically dispatches status email without duplicates
-    updateApplicationApi(applicationId, updates, comment, actor);
+
+    // Send update to central backend with expected_version
+    const result = await updateApplicationApi(applicationId, updates, comment, actor, expectedVersion);
+    if (result && result.ok === false && result.status === 409) {
+      alert(`⚠️ Concurrent Update Conflict: Application ${applicationId} was modified by another user. Reloading latest records from the server to prevent accidental overwrites.`);
+      refreshFromDatabase();
+      return { conflict: true };
+    }
+    return result;
   };
 
   const submitApplication = async (formData) => {
@@ -173,7 +230,7 @@ export function AppProvider({ children }) {
       coursePreference: formData.coursePreference || { firstPreference: '', additionalPreferences: [] },
     };
 
-    // Backend generates unique atomic YYNNNN ID, saves to MySQL, and emails the student
+    // Central backend atomically assigns YYNNNN ID, persists to MySQL, and broadcasts 'application_created'
     let serverResult = null;
     try {
       serverResult = await submitApplicationApi(rawData);
@@ -200,8 +257,11 @@ export function AppProvider({ children }) {
     return appRecord;
   };
 
-  const confirmApplication = (applicationId, actor = 'Admission Officer') => {
+  const confirmApplication = async (applicationId, actor = 'Admission Officer') => {
     const note = 'Application confirmed by admission office.';
+    const currentItem = applications.find((item) => item.id === applicationId);
+    const expectedVersion = currentItem?.version || 1;
+
     setApplications((current) => current.map((item) => {
       if (item.id !== applicationId) return item;
       return {
@@ -212,8 +272,8 @@ export function AppProvider({ children }) {
       };
     }));
     addHistoryEntry(applicationId, note, actor);
-    // Backend commits update to DB first, then automatically dispatches Confirmed email without duplicates
-    updateApplicationApi(applicationId, { status: 'Confirmed' }, note, actor);
+    // Backend commits update to DB first, broadcasts to all connected users, and sends status email
+    await updateApplicationApi(applicationId, { status: 'Confirmed' }, note, actor, expectedVersion);
   };
 
   const deleteApplication = async (applicationId) => {
@@ -221,8 +281,11 @@ export function AppProvider({ children }) {
     await deleteApplicationApi(applicationId).catch(() => {});
   };
 
-  const forwardApplicationToVC = (applicationId, actor = 'Admission Officer') => {
+  const forwardApplicationToVC = async (applicationId, actor = 'Admission Officer') => {
     const note = 'Application forwarded to the VC list by the admission office.';
+    const currentItem = applications.find((item) => item.id === applicationId);
+    const expectedVersion = currentItem?.version || 1;
+
     setApplications((current) => current.map((item) => {
       if (item.id !== applicationId) return item;
       return {
@@ -233,7 +296,7 @@ export function AppProvider({ children }) {
       };
     }));
     addHistoryEntry(applicationId, note, actor);
-    updateApplicationApi(applicationId, { status: 'Sent to VC' }, note, actor);
+    await updateApplicationApi(applicationId, { status: 'Sent to VC' }, note, actor, expectedVersion);
   };
 
   const resetDemoData = () => {
@@ -251,6 +314,7 @@ export function AppProvider({ children }) {
     auth,
     draft,
     applications,
+    isLiveConnected,
     backgroundSettings,
     paymentSettings,
     correctionHistory,
@@ -266,10 +330,11 @@ export function AppProvider({ children }) {
     addHistoryEntry,
     dismissDraft,
     resetDemoData,
+    refreshFromDatabase,
     setDraft,
     setBackgroundSettings: updateBackgroundSettings,
     setPaymentSettings: updatePaymentSettings,
-  }), [auth, draft, applications, backgroundSettings, paymentSettings, correctionHistory, lastSubmitted, saveDraft]);
+  }), [auth, draft, applications, isLiveConnected, backgroundSettings, paymentSettings, correctionHistory, lastSubmitted, saveDraft, refreshFromDatabase]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

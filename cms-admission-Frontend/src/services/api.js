@@ -1,5 +1,7 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL
-  || (typeof window !== 'undefined' && window.location.port === '5173' ? 'http://localhost:8000' : '');
+  || (typeof window !== 'undefined' && window.location.port === '5173'
+      ? `http://${window.location.hostname || 'localhost'}:8000`
+      : '');
 
 async function safeFetch(url, options = {}) {
   try {
@@ -57,15 +59,15 @@ export async function submitApplicationApi(appData) {
   return appData;
 }
 
-export async function updateApplicationApi(appId, updates, comment = null, actor = null) {
+export async function updateApplicationApi(appId, updates, comment = null, actor = null, expectedVersion = null) {
   const result = await safeFetch(`/portal/applications/${encodeURIComponent(appId)}`, {
     method: 'PUT',
-    body: JSON.stringify({ updates, comment, actor }),
+    body: JSON.stringify({ updates, comment, actor, expected_version: expectedVersion }),
   });
   if (result.ok) {
-    return result.data;
+    return { ok: true, data: result.data, ...result.data };
   }
-  return null;
+  return { ok: false, status: result.status, error: result.error };
 }
 
 export async function fetchSettingApi(key, fallback = null) {

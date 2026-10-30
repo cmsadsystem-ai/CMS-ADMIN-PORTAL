@@ -2,13 +2,14 @@ import json
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .. import models
 from ..database import get_db
+from ..realtime import emit_realtime_event
 from ..security import create_staff_token, verify_password
 
 router = APIRouter(prefix="/portal", tags=["portal"])
@@ -24,6 +25,7 @@ class UpdateAppRequest(BaseModel):
     updates: dict[str, Any]
     comment: str | None = None
     actor: str | None = None
+    expected_version: int | None = None
 
 
 @router.post("/auth/login")
@@ -76,6 +78,7 @@ def list_portal_applications(
             data["forwardedAt"] = r.forwarded_at.isoformat()
         if r.submitted_at and not data.get("submittedAt"):
             data["submittedAt"] = r.submitted_at.isoformat()
+        data["version"] = int(data.get("version") or 1)
         results.append(data)
     return results
 
@@ -299,6 +302,7 @@ def dispatch_status_email(
 @router.post("/applications")
 def create_portal_application(
     payload: dict[str, Any],
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     app_id = payload.get("id")
@@ -326,6 +330,8 @@ def create_portal_application(
         payload["submittedAt"] = datetime.now(timezone.utc).isoformat()
     if not payload.get("updatedAt"):
         payload["updatedAt"] = datetime.now(timezone.utc).isoformat()
+    if not payload.get("version"):
+        payload["version"] = 1
 
     student_name = payload.get("studentName")
     emis_id = payload.get("emisId")
@@ -363,7 +369,11 @@ def create_portal_application(
     student_email = payload.get("email")
 
     if student_email and last_emailed != current_status and current_status in ["Enquiring", "Confirmed", "Confirm"]:
-        dispatch_status_email(
+        payload["last_emailed_status"] = current_status
+        record.data_json = json.dumps(payload)
+        db.commit()
+        background_tasks.add_task(
+            dispatch_status_email,
             to_email=student_email,
             student_name=student_name or "Student",
             application_id=app_id,
@@ -371,9 +381,9 @@ def create_portal_application(
             course=course_name,
             application_details=payload,
         )
-        payload["last_emailed_status"] = current_status
-        record.data_json = json.dumps(payload)
-        db.commit()
+
+    # 3. Broadcast real-time creation event to all connected staff & dashboards
+    emit_realtime_event("application_created", payload)
 
     return payload
 
@@ -382,6 +392,7 @@ def create_portal_application(
 def update_portal_application(
     app_id: str,
     payload: UpdateAppRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     record = db.get(models.PortalApplication, app_id)
@@ -393,10 +404,33 @@ def update_portal_application(
     except Exception:
         data = {}
 
+    current_version = int(data.get("version") or 1)
+    if payload.expected_version is not None and payload.expected_version < current_version:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "conflict",
+                "message": f"Application {app_id} was modified by another user. Current server version: {current_version}, your version: {payload.expected_version}.",
+                "server_version": current_version,
+            },
+        )
+    data["version"] = current_version + 1
+
     old_status = record.status
     updates = payload.updates
     for k, v in updates.items():
         data[k] = v
+
+    # Also keep indexed SQL columns synchronized if corresponding fields were updated
+    if "studentName" in updates:
+        record.student_name = updates["studentName"]
+    if "emisId" in updates:
+        record.emis_id = updates["emisId"]
+    if "admissionCategory" in updates or "category" in updates:
+        record.admission_category = updates.get("admissionCategory") or updates.get("category")
+    if "coursePreference" in updates:
+        cp = updates["coursePreference"]
+        record.course_name = cp.get("firstPreference") if isinstance(cp, dict) else str(cp or "")
 
     now_iso = datetime.now(timezone.utc).isoformat()
     data["updatedAt"] = now_iso
@@ -435,7 +469,11 @@ def update_portal_application(
         if (new_status != old_status or last_emailed != new_status) and last_emailed != new_status:
             course_pref = data.get("coursePreference")
             course_name = course_pref.get("firstPreference") if isinstance(course_pref, dict) else str(course_pref or "")
-            dispatch_status_email(
+            data["last_emailed_status"] = new_status
+            record.data_json = json.dumps(data)
+            db.commit()
+            background_tasks.add_task(
+                dispatch_status_email,
                 to_email=student_email,
                 student_name=data.get("studentName") or "Student",
                 application_id=app_id,
@@ -443,9 +481,9 @@ def update_portal_application(
                 course=course_name,
                 application_details=data,
             )
-            data["last_emailed_status"] = new_status
-            record.data_json = json.dumps(data)
-            db.commit()
+
+    # 3. Broadcast real-time update event to all connected dashboards and views
+    emit_realtime_event("application_updated", data)
 
     return data
 
@@ -460,6 +498,7 @@ def delete_portal_application(
         raise HTTPException(404, "Application not found")
     db.delete(record)
     db.commit()
+    emit_realtime_event("application_deleted", {"id": app_id})
     return {"ok": True, "id": app_id}
 
 
@@ -518,4 +557,5 @@ def save_portal_setting(key: str, payload: dict[str, Any], db: Session = Depends
         setting = models.PortalSetting(key=key, value_json=val_str)
         db.add(setting)
     db.commit()
+    emit_realtime_event("setting_updated", {"key": key, "value": payload.get("value")})
     return {"key": key, "ok": True}

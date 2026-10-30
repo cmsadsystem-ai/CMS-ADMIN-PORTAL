@@ -6,7 +6,7 @@ import { downloadApplicationsCsv, formatDate } from '../utils/helpers';
 
 export default function OfficerDashboardPage() {
   const navigate = useNavigate();
-  const { applications, auth, logoutDemoUser, deleteApplication } = useAppContext();
+  const { applications, auth, logoutDemoUser, deleteApplication, isLiveConnected } = useAppContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [courseFilter, setCourseFilter] = useState('');
@@ -67,7 +67,28 @@ export default function OfficerDashboardPage() {
             <p className="eyebrow accent">Welcome back</p>
             <h2>{auth.username || 'Officer'}</h2>
           </div>
-          <div className="toolbar">
+          <div className="toolbar" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '12px',
+              fontWeight: 600,
+              color: isLiveConnected ? '#15803d' : '#6b7280',
+              backgroundColor: isLiveConnected ? '#dcfce7' : '#f3f4f6',
+              padding: '4px 10px',
+              borderRadius: '999px',
+              border: `1px solid ${isLiveConnected ? '#bbf7d0' : '#e5e7eb'}`
+            }}>
+              <span style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: isLiveConnected ? '#16a34a' : '#9ca3af',
+                boxShadow: isLiveConnected ? '0 0 0 2px rgba(34,197,94,0.3)' : 'none'
+              }}></span>
+              {isLiveConnected ? 'Live Central Sync' : 'Reconnecting...'}
+            </span>
             <button type="button" className="secondary-btn compact"><BellRing size={16} /> Alerts</button>
             <button type="button" className="secondary-btn compact" onClick={() => navigate('/officer/settings')}><Settings size={16} /> Settings</button>
           </div>
